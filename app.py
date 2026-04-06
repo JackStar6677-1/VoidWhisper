@@ -6,9 +6,6 @@ from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 import json
 import torch
-import webbrowser
-import threading
-import time
 from datetime import datetime, timedelta
 from sqlalchemy import inspect
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -565,9 +562,9 @@ def delete_character(char_id):
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    def open_browser():
-        time.sleep(1)
-        webbrowser.open('http://127.0.0.1:5000/')
+    # def open_browser():
+    #     time.sleep(1)
+    #     webbrowser.open('http://127.0.0.1:5000/')
 
-    threading.Thread(target=open_browser, daemon=True).start()
+    # threading.Thread(target=open_browser, daemon=True).start()
     app.run(host='0.0.0.0', port=5000, debug=True)
