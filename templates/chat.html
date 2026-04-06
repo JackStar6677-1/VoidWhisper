@@ -10,9 +10,14 @@
         h1, h2 { text-align: center; color: #FFD700; text-shadow: 0 0 10px #4B0082; }
         .meta { text-align: center; margin-bottom: 20px; }
         .messages { background: #2c0934; padding: 20px; border-radius: 10px; min-height: 300px; max-height: 500px; overflow-y: auto; border: 1px solid #FFD700; }
-        .message { margin-bottom: 15px; }
-        .message.user { color: #fff; }
-        .message.ai { color: #d4af37; }
+        .message { margin-bottom: 15px; padding: 10px; border-radius: 8px; }
+        .message.user { color: #fff; background: rgba(255,255,255,0.05); }
+        .message.ai { color: #d4af37; background: rgba(255,215,0,0.08); }
+        .message.action { font-style: italic; border: 1px dashed #FFD700; }
+        .message.whisper { opacity: 0.9; color: #c0c0c0; }
+        .message-controls { display: inline-flex; gap: 10px; margin-left: 10px; font-size: 0.9em; }
+        .message-controls a { color: #FFD700; }
+        .message-controls a.delete-btn { color: #fff; }
         form { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
         textarea { padding: 10px; border: 2px solid #FFD700; border-radius: 5px; background: #4B0082; color: #FFD700; height: 120px; }
         button { padding: 12px; background: #FFD700; color: #4B0082; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -38,11 +43,23 @@
         <div class="note" style="margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid #FFD700; border-radius: 8px;">
             <strong>Nota de contexto:</strong> {{ chat.context_note }}
         </div>
+        {% endif %}
         <div class="messages">
             {% if messages %}
                 {% for msg in messages %}
-                <div class="message {{ msg.role }}">
-                    <strong>{{ 'Tú' if msg.role == 'user' else character.name }}:</strong> {{ msg.content }}
+                <div class="message {{ msg.role }} {% if msg.format == 'action' %}action{% elif msg.format == 'whisper' %}whisper{% endif %}">
+                    <strong>{{ 'Tú' if msg.role == 'user' else character.name }}:</strong>
+                    {% if msg.format == 'action' %}
+                        *{{ msg.content }}*
+                    {% elif msg.format == 'whisper' %}
+                        _{{ msg.content }}_
+                    {% else %}
+                        {{ msg.content }}
+                    {% endif %}
+                    <span class="message-controls">
+                        <a href="{{ url_for('edit_message', chat_id=chat.id, msg_index=loop.index0) }}">Editar</a>
+                        <a href="{{ url_for('delete_message', chat_id=chat.id, msg_index=loop.index0) }}" class="delete-btn" onclick="return confirm('¿Borrar este mensaje?')">Borrar</a>
+                    </span>
                 </div>
                 {% endfor %}
             {% else %}
@@ -52,6 +69,13 @@
         <form action="{{ url_for('send_message', chat_id=chat.id) }}" method="POST">
             <label for="message">Mensaje:</label>
             <textarea name="message" id="message" placeholder="Escribe tu mensaje aquí..."></textarea>
+            <label for="message_format">Formato de envío:</label>
+            <select name="message_format" id="message_format">
+                <option value="normal">Normal</option>
+                <option value="action">*Acción*</option>
+                <option value="whisper">_Susurro_</option>
+            </select>
+            <p style="font-size: 0.9em; color: #fff;">Usa <strong>*texto*</strong> para acciones y <strong>_texto_</strong> para susurros; el modelo los reconocerá.</p>
             <button type="submit">Enviar</button>
         </form>
     </div>
