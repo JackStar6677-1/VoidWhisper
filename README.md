@@ -97,7 +97,7 @@ VoidWhisper incluye personajes predefinidos basados en variantes de Saori, una m
 
    La app ahora corre en la red local. Para acceder desde otros dispositivos, usa la IP de tu máquina (ej: http://192.168.1.100:5000/).
 
-   Usuario por defecto: Jack, contraseña: 214526867.
+   Usuario por defecto: Pablo, contraseña: 214526867.
 
    Puedes registrar nuevos usuarios y recuperar contraseña via email.
 

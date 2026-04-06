@@ -128,10 +128,21 @@ with app.app_context():
         if 'context_note' not in columns:
             db.engine.execute('ALTER TABLE chat ADD COLUMN context_note TEXT DEFAULT ""')
 
-    if not AuthUser.query.filter_by(username='Jack').first():
+    if not AuthUser.query.filter_by(username='Pablo').first():
         hashed_password = generate_password_hash('214526867')
-        jack = AuthUser(username='Jack', password_hash=hashed_password)
+        jack = AuthUser(username='Pablo', password_hash=hashed_password)
         db.session.add(jack)
+
+    if not User.query.first():
+        user = User(
+            name='Pablo',
+            info=json.dumps({
+                'profile': 'Pablo Elías Avendaño Miranda, ingeniero en informática, 1.75m, 90-95kg, musculoso, le gusta trato cercano y cariñoso',
+                'interests': 'Tech, gaming, IA, automatización, Minecraft dev, servidores, DrakesCraft',
+                'tone': 'Directo, casual y curioso, con modismos chilenos'
+            })
+        )
+        db.session.add(user)
 
     def ensure_character(name, prompt):
         if not Character.query.filter_by(name=name).first():
