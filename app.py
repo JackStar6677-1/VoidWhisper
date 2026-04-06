@@ -105,9 +105,9 @@ with app.app_context():
 
     if not User.query.first():
         user = User(
-            name='Operador',
+            name='Pablo',
             info=json.dumps({
-                'profile': 'Usuario genérico',
+                'profile': 'Pablo',
                 'interests': 'Tech, gaming, IA, historias',
                 'tone': 'Directo, casual y curioso'
             })
