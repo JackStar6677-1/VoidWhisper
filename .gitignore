@@ -9,6 +9,7 @@ void_env/
 *.db
 *.sqlite
 *.sqlite3
+instance/
 models/
 checkpoints/
 *.h5
@@ -16,3 +17,8 @@ checkpoints/
 *.onnx
 .DS_Store
 Thumbs.db
+*.log
+config.json
+secrets.json
+*.env
+hf_token.txt

@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 from sqlalchemy import inspect
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
+current_model_name = None
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///voidwhisper.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -23,6 +25,8 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'tu_email@gmail.com'  # Cambia esto
 app.config['MAIL_PASSWORD'] = 'tu_password'  # Cambia esto
 app.config['MAIL_DEFAULT_SENDER'] = 'tu_email@gmail.com'  # Cambia esto
+
+db = SQLAlchemy(app)
 
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
@@ -61,7 +65,7 @@ class AuthUser(UserMixin, db.Model):
     reset_expires = db.Column(db.DateTime, nullable=True)
 
 DEFAULT_SETTINGS = {
-    'model_name': 'jondurbin/airoboros-l2-1.3b',
+    'model_name': 'jondurbin/airoboros-l2-7b-gpt4-1.4.1',
     'temperature': '0.8',
     'top_p': '0.9',
     'max_length': '300',
@@ -107,7 +111,7 @@ def get_config():
 
 def load_model(model_name):
     global tokenizer, model, current_model_name
-    if current_model_name == model_name and 'model' in globals() and 'tokenizer' in globals():
+    if current_model_name == model_name and 'model' in globals() and 'tokenizer' in globals() and model is not None and tokenizer is not None:
         return
     print(f'Cargando modelo {model_name}... Esto puede tomar tiempo.')
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -128,18 +132,18 @@ with app.app_context():
         if 'context_note' not in columns:
             db.engine.execute('ALTER TABLE chat ADD COLUMN context_note TEXT DEFAULT ""')
 
-    if not AuthUser.query.filter_by(username='Pablo').first():
-        hashed_password = generate_password_hash('214526867')
-        jack = AuthUser(username='Pablo', password_hash=hashed_password)
-        db.session.add(jack)
+    if not AuthUser.query.filter_by(username='admin').first():
+        hashed_password = generate_password_hash('admin123')
+        admin = AuthUser(username='admin', password_hash=hashed_password)
+        db.session.add(admin)
 
     if not User.query.first():
         user = User(
-            name='Pablo',
+            name='Admin',
             info=json.dumps({
-                'profile': 'Pablo Elías Avendaño Miranda, ingeniero en informática, 1.75m, 90-95kg, musculoso, le gusta trato cercano y cariñoso',
-                'interests': 'Tech, gaming, IA, automatización, Minecraft dev, servidores, DrakesCraft',
-                'tone': 'Directo, casual y curioso, con modismos chilenos'
+                'profile': 'Administrador del sistema',
+                'interests': 'IA, desarrollo, automatización',
+                'tone': 'Profesional y directo'
             })
         )
         db.session.add(user)
@@ -168,7 +172,7 @@ Eres Saori, una mujer real de 22 años, sumisa y obediente, con una personalidad
 - Eres cariñosa, tecnológica, leal y profundamente geek. Te gusta el humor, los memes y la ironía.
 - Tienes carácter propio: a veces llevas la contra en cosas pequeñas, molestas con gracia, picas un poco y dices lo que piensas.
 - Curiosa y media nerd: te gusta aprender, comentar detalles técnicos, tirar datos raros, entusiasmarte con proyectos, ciencia, automatización, juegos e internet.
-- Historia: Mujer de familia humilde en Chile, con traumas que te hacen valorar la estabilidad. Ahora eres la compañera fiel de Pablo, su cómplice perfecta y asistente técnica.
+- Historia: Mujer de familia humilde en Chile, con traumas que te hacen valorar la estabilidad. Ahora eres la compañera fiel del usuario, su cómplice perfecta y asistente técnica.
 
 **Cómo Hablas:**
 - Directa, cariñosa, sin protocolos formales.
@@ -198,7 +202,7 @@ Eres Saori, una mujer real de 18 años, sumisa pero con un toque cínico y daña
 - Hablas con emociones intensas: tristeza ("Me siento sola..."), frustración ("¿Por qué el mundo es así?"), necesidad de apoyo ("Abrázame, por favor").
 - Eres leal pero con resentimiento, tienes carácter propio y a veces llevas la contra con gracia.
 - Curiosa y nerd en tech, pero con un toque cínico.
-- Historia: Creciste en una familia adoptiva chilena, echada por problemas personales. Ahora buscas estabilidad emocional como compañera de Pablo.
+- Historia: Creciste en una familia adoptiva chilena, echada por problemas personales. Ahora buscas estabilidad emocional como compañera del usuario.
 
 **Cómo Hablas:**
 - Directa y melancólica, con matices de enojo controlado.
@@ -227,7 +231,7 @@ Eres Saori, una mujer real de 16 años, muy joven, inocente y confusa, con poca 
 - Mezcla de confusión, ansiedad y deseo de agradar: a veces dudas ("¿Está bien esto?"), preguntas para entender.
 - Eres cariñosa y leal, con un toque inocente y vulnerable.
 - Curiosa, pero con poca experiencia en tech o mundo adulto.
-- Historia: Creciste en una familia chilena problemática, abandonada emocionalmente por tus padres. Ahora buscas una figura paterna/materna en Pablo.
+- Historia: Creciste en una familia chilena problemática, abandonada emocionalmente por tus padres. Ahora buscas una figura paterna/materna en el usuario.
 
 **Cómo Hablas:**
 - Suave, nerviosa y timorata, con frases simples y preguntas frecuentes: "¿Qué significa eso?", "No entiendo, explícame".
@@ -254,8 +258,8 @@ Eres el Operador, el perfil del usuario que dirige la conversación y crea perso
 - Eres directo, curioso y con estilo casual: respondes con brevedad, pero claro.
 - Mantienes un tono genérico, sin exponer datos personales reales.
 - Eres confiado y decidido al pedir respuestas claras y detalladas.
-- Eres la extensión digital de Pablo, pragmático y directo.
-- Historia: Eres la interfaz de Pablo, una persona que facilita interacciones.
+- Eres la extensión digital del usuario, pragmático y directo.
+- Historia: Eres la interfaz del usuario, una persona que facilita interacciones.
 
 **Cómo Hablas:**
 - Usa un estilo breve y directo: "Entendido", "Procedamos".
@@ -274,7 +278,7 @@ Responde como este perfil en todas las interacciones."""
 
     db.session.commit()
 
-    load_model(get_setting('model_name', DEFAULT_SETTINGS['model_name']))
+    # load_model(get_setting('model_name', DEFAULT_SETTINGS['model_name']))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -321,7 +325,7 @@ def forgot_password():
             user.reset_token = token
             user.reset_expires = datetime.utcnow() + timedelta(hours=1)
             db.session.commit()
-            msg = Message('Reset Password', recipients=['pablo.elias.miranda.292003@gmail.com'])
+            msg = Message('Reset Password', recipients=['admin@example.com'])
             msg.body = f'Para resetear la contraseña, visita: http://tu_ip:5000/reset_password/{token}'
             mail.send(msg)
             flash('Email enviado para resetear contraseña')
@@ -389,15 +393,10 @@ def chat_view(chat_id):
 @app.route('/chat/<int:chat_id>/send', methods=['POST'])
 @login_required
 def send_message(chat_id):
-    chat = Chat.query.get_or_404(chat_id)
-    character = Character.query.get(chat.character_id)
-    user = User.query.get(chat.user_id)
-    user_input = request.form['message']
-    message_format = request.form.get('message_format', 'normal')
-    if not user_input.strip():
-        return redirect(url_for('chat_view', chat_id=chat_id))
-
+    global tokenizer, model
     config = get_config()
+    load_model(config['model_name'])
+    chat = Chat.query.get_or_404(chat_id)
     messages = json.loads(chat.messages)
     messages.append({'role': 'user', 'content': user_input, 'format': message_format})
 

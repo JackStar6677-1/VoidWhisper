@@ -11,7 +11,7 @@
         .section { margin-bottom: 30px; }
         .section h2 { border-bottom: 2px solid #FFD700; padding-bottom: 5px; }
         .chat-list, .character-list { display: flex; flex-wrap: wrap; gap: 10px; }
-        .chat-item, .character-item { background: #4B0082; padding: 10px; border-radius: 5px; border: 1px solid #FFD700; }
+        .chat-item, .character-item { background: #4B0082; padding: 10px; border-radius: 5px; border: 1px solid #FFD700; flex: 1 1 200px; }
         .chat-item a, .character-item a { color: #FFD700; text-decoration: none; }
         .chat-item a:hover, .character-item a:hover { text-decoration: underline; }
         form { display: flex; flex-direction: column; gap: 10px; }
@@ -21,6 +21,17 @@
         button:hover { background: #FFA500; }
         .delete-btn { background: #DC3545; color: white; }
         .delete-btn:hover { background: #C82333; }
+
+        /* Responsivo para móviles */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 10px; }
+            h1 { font-size: 1.5em; }
+            .chat-list, .character-list { flex-direction: column; }
+            .chat-item, .character-item { flex: 1 1 100%; }
+            input, select, textarea { font-size: 16px; } /* Evita zoom en móviles */
+            button { font-size: 16px; padding: 12px; }
+        }
     </style>
 </head>
 <body>
