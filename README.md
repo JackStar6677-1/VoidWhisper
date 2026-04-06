@@ -80,6 +80,8 @@ Un entorno local para chatear con modelos de lenguaje sin censura, con personaje
 - El modelo se carga al iniciar la app (puede tomar tiempo en CPU).
 - Si tienes GPU, ajusta `device_map` en `app.py`.
 - Personajes predefinidos: Saori 22, Saori 18, Saori 16 y Operador (perfil de usuario genérico).
+- Saori 16 es inocente, con poca experiencia en el mundo y problemas con sus padres.
+- Saori 18 fue echada de casa y responde con emociones intensas.
 - La UI permite crear personajes sin IDE: todo via web.
 
 ## Licencia
