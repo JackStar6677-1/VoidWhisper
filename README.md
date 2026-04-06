@@ -21,7 +21,7 @@ Un entorno local para chatear con modelos de lenguaje sin censura, con personaje
 
 1. Clona o descarga el repo:
    ```
-   git clone https://github.com/tuusuario/VoidWhisper.git
+   git clone https://github.com/JackStar6677-1/VoidWhisper.git
    cd VoidWhisper
    ```
 
