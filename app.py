@@ -15,6 +15,12 @@ except ImportError:
     AIRLLM_AVAILABLE = False
 from transformers import AutoTokenizer
 
+# Ensure sentencepiece is imported for tokenizer support
+try:
+    import sentencepiece
+except ImportError:
+    pass
+
 current_model_name = None
 
 app = Flask(__name__)
@@ -120,7 +126,15 @@ def load_model(model_name, use_quantization=None):
         return
     
     print(f'Cargando modelo {model_name}...')
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False, trust_remote_code=True)
+    
+    # Para modelos GGUF, usar el tokenizador de base de Mistral en lugar del modelo cuantizado
+    tokenizer_model = 'mistralai/Mistral-7B-Instruct-v0.1'
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_model, use_fast=False, trust_remote_code=True)
+    except Exception as e:
+        print(f'Error loading tokenizer for {tokenizer_model}: {e}')
+        print('Retrying with alternative approach...')
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_model, use_fast=True)
     
     # Configuración para VRAM limitada (MX450 con 2GB)
     model_kwargs = {
