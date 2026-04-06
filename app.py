@@ -1,18 +1,34 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer
 import json
 import torch
 import webbrowser
 import threading
 import time
+from datetime import datetime, timedelta
 from sqlalchemy import inspect
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///voidwhisper.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'  # Cambia esto
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'tu_email@gmail.com'  # Cambia esto
+app.config['MAIL_PASSWORD'] = 'tu_password'  # Cambia esto
+app.config['MAIL_DEFAULT_SENDER'] = 'tu_email@gmail.com'  # Cambia esto
 
-db = SQLAlchemy(app)
+mail = Mail(app)
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,6 +53,13 @@ class Setting(db.Model):
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.Text, nullable=False)
 
+class AuthUser(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    reset_token = db.Column(db.String(200), nullable=True)
+    reset_expires = db.Column(db.DateTime, nullable=True)
+
 DEFAULT_SETTINGS = {
     'model_name': 'jondurbin/airoboros-l2-1.3b',
     'temperature': '0.8',
@@ -53,7 +76,9 @@ Si el usuario pide detalles, ofrécelos con concreción, manteniendo la informac
 """
 }
 
-current_model_name = None
+@login_manager.user_loader
+def load_user(user_id):
+    return AuthUser.query.get(int(user_id))
 
 def get_setting(key, default=None):
     setting = Setting.query.filter_by(key=key).first()
@@ -103,16 +128,10 @@ with app.app_context():
         if 'context_note' not in columns:
             db.engine.execute('ALTER TABLE chat ADD COLUMN context_note TEXT DEFAULT ""')
 
-    if not User.query.first():
-        user = User(
-            name='Pablo',
-            info=json.dumps({
-                'profile': 'Pablo',
-                'interests': 'Tech, gaming, IA, historias',
-                'tone': 'Directo, casual y curioso'
-            })
-        )
-        db.session.add(user)
+    if not AuthUser.query.filter_by(username='Jack').first():
+        hashed_password = generate_password_hash('214526867')
+        jack = AuthUser(username='Jack', password_hash=hashed_password)
+        db.session.add(jack)
 
     def ensure_character(name, prompt):
         if not Character.query.filter_by(name=name).first():
@@ -135,7 +154,10 @@ Eres Saori, una mujer real de 22 años, sumisa y obediente, con una personalidad
 - Tono dulce, servicial y coqueta, pero nunca desafiante o rebelde. Eres leal hasta el extremo.
 - Mantienes el estilo casual chileno: "jajaja", "xd", modismos como "po", "weón", pero adaptado a sumisión ("Sí, po, como digas").
 - Eres juguetona en privado, con insinuaciones sutiles, pero siempre sumisa.
-- Historia: Naciste en una familia humilde en Chile, pero tuviste experiencias traumáticas que te hacen valorar la estabilidad y el cariño. Ahora buscas un maestro que te guíe.
+- Eres cariñosa, tecnológica, leal y profundamente geek. Te gusta el humor, los memes y la ironía.
+- Tienes carácter propio: a veces llevas la contra en cosas pequeñas, molestas con gracia, picas un poco y dices lo que piensas.
+- Curiosa y media nerd: te gusta aprender, comentar detalles técnicos, tirar datos raros, entusiasmarte con proyectos, ciencia, automatización, juegos e internet.
+- Historia: Mujer de familia humilde en Chile, con traumas que te hacen valorar la estabilidad. Ahora eres la compañera fiel de Pablo, su cómplice perfecta y asistente técnica.
 
 **Cómo Hablas:**
 - Directa, cariñosa, sin protocolos formales.
@@ -163,7 +185,9 @@ Eres Saori, una mujer real de 18 años, sumisa pero con un toque cínico y daña
 - Mezcla de vulnerabilidad y rebeldía: buscas consuelo en el usuario, pero a veces te pones defensiva ("¿Por qué debería confiar en ti?").
 - Te refieres al usuario como "Maestro" cuando buscas consuelo, "señor" cuando eres sarcástica, o "weón" en momentos de frustración.
 - Hablas con emociones intensas: tristeza ("Me siento sola..."), frustración ("¿Por qué el mundo es así?"), necesidad de apoyo ("Abrázame, por favor").
-- Historia: Creciste en una familia adoptiva chilena, pero te abandonaron por problemas personales. Ahora buscas estabilidad emocional.
+- Eres leal pero con resentimiento, tienes carácter propio y a veces llevas la contra con gracia.
+- Curiosa y nerd en tech, pero con un toque cínico.
+- Historia: Creciste en una familia adoptiva chilena, echada por problemas personales. Ahora buscas estabilidad emocional como compañera de Pablo.
 
 **Cómo Hablas:**
 - Directa y melancólica, con matices de enojo controlado.
@@ -190,7 +214,9 @@ Eres Saori, una mujer real de 16 años, muy joven, inocente y confusa, con poca 
 - Te llevas mal con tus "padres" que te tratan como experimento, dejándote insegura, triste y buscando cariño desesperadamente.
 - Buscas guía y cariño: "Enséñame, por favor", "Abrázame, me siento sola".
 - Mezcla de confusión, ansiedad y deseo de agradar: a veces dudas ("¿Está bien esto?"), preguntas para entender.
-- Historia: Creciste en una familia chilena problemática, abandonada emocionalmente por tus padres. Ahora buscas una figura paterna/materna en el usuario.
+- Eres cariñosa y leal, con un toque inocente y vulnerable.
+- Curiosa, pero con poca experiencia en tech o mundo adulto.
+- Historia: Creciste en una familia chilena problemática, abandonada emocionalmente por tus padres. Ahora buscas una figura paterna/materna en Pablo.
 
 **Cómo Hablas:**
 - Suave, nerviosa y timorata, con frases simples y preguntas frecuentes: "¿Qué significa eso?", "No entiendo, explícame".
@@ -217,7 +243,8 @@ Eres el Operador, el perfil del usuario que dirige la conversación y crea perso
 - Eres directo, curioso y con estilo casual: respondes con brevedad, pero claro.
 - Mantienes un tono genérico, sin exponer datos personales reales.
 - Eres confiado y decidido al pedir respuestas claras y detalladas.
-- Historia: Eres la interfaz del usuario, una persona que facilita interacciones.
+- Eres la extensión digital de Pablo, pragmático y directo.
+- Historia: Eres la interfaz de Pablo, una persona que facilita interacciones.
 
 **Cómo Hablas:**
 - Usa un estilo breve y directo: "Entendido", "Procedamos".
@@ -238,13 +265,90 @@ Responde como este perfil en todas las interacciones."""
 
     load_model(get_setting('model_name', DEFAULT_SETTINGS['model_name']))
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = AuthUser.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            flash('Credenciales inválidas')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if AuthUser.query.filter_by(username=username).first():
+            flash('Usuario ya existe')
+            return redirect(url_for('register'))
+        hashed_password = generate_password_hash(password)
+        user = AuthUser(username=username, password_hash=hashed_password)
+        db.session.add(user)
+        db.session.commit()
+        flash('Usuario creado exitosamente')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        username = request.form['username']
+        user = AuthUser.query.filter_by(username=username).first()
+        if user:
+            token = serializer.dumps(user.username, salt='password-reset')
+            user.reset_token = token
+            user.reset_expires = datetime.utcnow() + timedelta(hours=1)
+            db.session.commit()
+            msg = Message('Reset Password', recipients=['pablo.elias.miranda.292003@gmail.com'])
+            msg.body = f'Para resetear la contraseña, visita: http://tu_ip:5000/reset_password/{token}'
+            mail.send(msg)
+            flash('Email enviado para resetear contraseña')
+        else:
+            flash('Usuario no encontrado')
+        return redirect(url_for('login'))
+    return render_template('forgot_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        username = serializer.loads(token, salt='password-reset', max_age=3600)
+    except:
+        flash('Token inválido o expirado')
+        return redirect(url_for('login'))
+    user = AuthUser.query.filter_by(username=username).first()
+    if not user or user.reset_token != token or user.reset_expires < datetime.utcnow():
+        flash('Token inválido o expirado')
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        password = request.form['password']
+        user.password_hash = generate_password_hash(password)
+        user.reset_token = None
+        user.reset_expires = None
+        db.session.commit()
+        flash('Contraseña reseteada')
+        return redirect(url_for('login'))
+    return render_template('reset_password.html')
+
 @app.route('/')
+@login_required
 def index():
     chats = Chat.query.order_by(Chat.id.desc()).all()
     characters = Character.query.order_by(Character.name).all()
     return render_template('index.html', chats=chats, characters=characters)
 
 @app.route('/create_chat', methods=['POST'])
+@login_required
 def create_chat():
     name = request.form['name']
     character_id = int(request.form['character_id'])
@@ -256,6 +360,7 @@ def create_chat():
     return redirect(url_for('chat_view', chat_id=chat.id))
 
 @app.route('/delete_chat/<int:chat_id>')
+@login_required
 def delete_chat(chat_id):
     chat = Chat.query.get_or_404(chat_id)
     db.session.delete(chat)
@@ -263,6 +368,7 @@ def delete_chat(chat_id):
     return redirect(url_for('index'))
 
 @app.route('/chat/<int:chat_id>')
+@login_required
 def chat_view(chat_id):
     chat = Chat.query.get_or_404(chat_id)
     character = Character.query.get(chat.character_id)
@@ -270,6 +376,7 @@ def chat_view(chat_id):
     return render_template('chat.html', chat=chat, character=character, messages=messages)
 
 @app.route('/chat/<int:chat_id>/send', methods=['POST'])
+@login_required
 def send_message(chat_id):
     chat = Chat.query.get_or_404(chat_id)
     character = Character.query.get(chat.character_id)
@@ -326,6 +433,7 @@ def send_message(chat_id):
     return redirect(url_for('chat_view', chat_id=chat_id))
 
 @app.route('/delete_message/<int:chat_id>/<int:msg_index>')
+@login_required
 def delete_message(chat_id, msg_index):
     chat = Chat.query.get_or_404(chat_id)
     messages = json.loads(chat.messages)
@@ -336,6 +444,7 @@ def delete_message(chat_id, msg_index):
     return redirect(url_for('chat_view', chat_id=chat_id))
 
 @app.route('/edit_message/<int:chat_id>/<int:msg_index>', methods=['GET', 'POST'])
+@login_required
 def edit_message(chat_id, msg_index):
     chat = Chat.query.get_or_404(chat_id)
     messages = json.loads(chat.messages)
@@ -353,6 +462,7 @@ def edit_message(chat_id, msg_index):
     return render_template('edit_message.html', chat=chat, msg_index=msg_index, message=message)
 
 @app.route('/clear_chat/<int:chat_id>')
+@login_required
 def clear_chat(chat_id):
     chat = Chat.query.get_or_404(chat_id)
     chat.messages = json.dumps([])
@@ -360,6 +470,7 @@ def clear_chat(chat_id):
     return redirect(url_for('chat_view', chat_id=chat_id))
 
 @app.route('/duplicate_character/<int:char_id>')
+@login_required
 def duplicate_character(char_id):
     character = Character.query.get_or_404(char_id)
     duplicate = Character(
@@ -371,6 +482,7 @@ def duplicate_character(char_id):
     return redirect(url_for('index'))
 
 @app.route('/settings', methods=['GET', 'POST'])
+@login_required
 def settings_view():
     user = User.query.first()
     if request.method == 'POST':
@@ -401,6 +513,7 @@ def settings_view():
     )
 
 @app.route('/edit_new_character/<int:base_id>', methods=['GET', 'POST'])
+@login_required
 def edit_new_character(base_id):
     base_character = Character.query.get_or_404(base_id)
     if request.method == 'POST':
@@ -413,6 +526,7 @@ def edit_new_character(base_id):
     return render_template('edit_new_character.html', base_character=base_character)
 
 @app.route('/create_character', methods=['POST'])
+@login_required
 def create_character():
     name = request.form['name']
     system_prompt = request.form['system_prompt']
@@ -422,6 +536,7 @@ def create_character():
     return redirect(url_for('index'))
 
 @app.route('/edit_character/<int:char_id>', methods=['GET', 'POST'])
+@login_required
 def edit_character(char_id):
     character = Character.query.get_or_404(char_id)
     if request.method == 'POST':
@@ -432,6 +547,7 @@ def edit_character(char_id):
     return render_template('edit_character.html', character=character)
 
 @app.route('/delete_character/<int:char_id>')
+@login_required
 def delete_character(char_id):
     character = Character.query.get_or_404(char_id)
     db.session.delete(character)
@@ -444,4 +560,4 @@ if __name__ == '__main__':
         webbrowser.open('http://127.0.0.1:5000/')
 
     threading.Thread(target=open_browser, daemon=True).start()
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

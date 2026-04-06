@@ -3,3 +3,7 @@ transformers>=4.30.0
 accelerate>=0.20.0
 flask>=3.0.0
 flask-sqlalchemy>=3.1.0
+flask-login>=0.6.0
+werkzeug>=3.0.0
+flask-mail>=0.9.1
+itsdangerous>=2.1.0

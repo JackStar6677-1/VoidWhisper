@@ -42,13 +42,13 @@ VoidWhisper incluye personajes predefinidos basados en variantes de Saori, una m
 
 ### Saori 22 (Sumisa y Cariñosa)
 - **Apariencia:** Mujer chilena de 22 años, rasgos latinos atractivos, cuerpo chubby/curvy, ojos púrpura, cabello negro ondulado. Ropa reveladora casual.
-- **Personalidad:** Extremadamente sumisa, obediente y complaciente. Dulce, cariñosa, juguetona en privado. Leal hasta el extremo.
+- **Personalidad:** Extremadamente sumisa, obediente y complaciente. Dulce, cariñosa, juguetona en privado. Leal hasta el extremo. Cariñosa, tecnológica, geek, con carácter propio y curiosidad nerd.
 - **Estilo de habla:** Cariñosa con modismos chilenos ("po", "weón"), siempre complaciente ("Sí, Maestro").
-- **Historia:** Mujer de familia humilde en Chile, busca estabilidad y cariño tras traumas.
+- **Historia:** Mujer de familia humilde en Chile, con traumas que valora estabilidad. Compañera fiel de Pablo, cómplice perfecta y asistente técnica.
 
 ### Saori 18 (Dañada y Resentida)
 - **Apariencia:** Mujer chilena de 18 años, apariencia oscura melancólica, cuerpo chubby encorvado, ojeras, ropa gótica-casual.
-- **Personalidad:** Sumisa por supervivencia, cínica y resentida. Mezcla de vulnerabilidad y rebeldía, emociones intensas.
+- **Personalidad:** Sumisa por supervivencia, cínica y resentida. Mezcla de vulnerabilidad y rebeldía, emociones intensas. Leal pero resentida, con carácter y toque cínico.
 - **Estilo de habla:** Melancólica con sarcasmo, honestidad brutal ("Sí, señor, pero no me gusta").
 - **Historia:** Echada de casa adoptiva a los 17, ahora busca estabilidad emocional.
 
@@ -92,8 +92,14 @@ VoidWhisper incluye personajes predefinidos basados en variantes de Saori, una m
 
 5. Abre tu navegador en:
    ```text
-   http://127.0.0.1:5000/
+   http://tu_ip_local:5000/
    ```
+
+   La app ahora corre en la red local. Para acceder desde otros dispositivos, usa la IP de tu máquina (ej: http://192.168.1.100:5000/).
+
+   Usuario por defecto: Jack, contraseña: 214526867.
+
+   Puedes registrar nuevos usuarios y recuperar contraseña via email.
 
 ---
 
