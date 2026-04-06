@@ -120,7 +120,7 @@ def load_model(model_name, use_quantization=None):
         return
     
     print(f'Cargando modelo {model_name}...')
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False, trust_remote_code=True)
     
     # Configuración para VRAM limitada (MX450 con 2GB)
     model_kwargs = {
