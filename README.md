@@ -5,7 +5,7 @@ Un entorno local para chatear con modelos de lenguaje sin censura, con personaje
 ## Características
 
 - **Chats Múltiples**: Crea, gestiona y borra conversaciones independientes.
-- **Personajes Personalizables**: Crea y edita personajes con prompts del sistema. Incluye personajes predefinidos como Saori Sumisa y Jack.
+- **Personajes Personalizables**: Crea y edita personajes con prompts del sistema. Incluye personajes predefinidos como Saori Sumisa y un perfil de Operador genérico.
 - **Interfaz Web Royal**: Diseño elegante en morado y dorado.
 - **Almacenamiento Local**: Usa SQLite para persistir chats, personajes y perfil de usuario.
 - **Modelo Uncensored**: Basado en jondurbin/airoboros-l2-1.3b, sin filtros éticos.
@@ -37,8 +37,8 @@ Un entorno local para chatear con modelos de lenguaje sin censura, con personaje
    ```
 
 4. Descarga el modelo (no incluido en el repo por tamaño):
-   - Ve a [Hugging Face: jondurbin/airoboros-l2-1.3b](https://huggingface.co/jondurbin/airoboros-l2-1.3b)
-   - Descarga los archivos del modelo (usa `git lfs` si es necesario).
+   - Busca el modelo `jondurbin/airoboros-l2-1.3b` en Hugging Face.
+   - Descarga los archivos del modelo desde la página oficial del autor (usa `git lfs` si es necesario).
    - Coloca los archivos en una carpeta accesible, o deja que Transformers los descargue automáticamente al ejecutar.
 
 ## Uso
@@ -79,7 +79,7 @@ Un entorno local para chatear con modelos de lenguaje sin censura, con personaje
 
 - El modelo se carga al iniciar la app (puede tomar tiempo en CPU).
 - Si tienes GPU, ajusta `device_map` en `app.py`.
-- Personajes predefinidos: Saori Sumisa (sumisa, furry) y Jack (tú mismo, basado en tu perfil).
+- Personajes predefinidos: Saori 22, Saori 18, Saori 16 y Operador (perfil de usuario genérico).
 - La UI permite crear personajes sin IDE: todo via web.
 
 ## Licencia

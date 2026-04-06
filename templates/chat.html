@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - VoidWhisper</title>
+    <style>
+        body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #4B0082, #FFD700); color: #FFD700; margin: 0; padding: 20px; min-height: 100vh; }
+        .container { max-width: 1000px; margin: auto; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 10px; box-shadow: 0 0 20px #FFD700; }
+        h1, h2 { text-align: center; color: #FFD700; text-shadow: 0 0 10px #4B0082; }
+        .meta { text-align: center; margin-bottom: 20px; }
+        .messages { background: #2c0934; padding: 20px; border-radius: 10px; min-height: 300px; max-height: 500px; overflow-y: auto; border: 1px solid #FFD700; }
+        .message { margin-bottom: 15px; }
+        .message.user { color: #fff; }
+        .message.ai { color: #d4af37; }
+        form { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        textarea { padding: 10px; border: 2px solid #FFD700; border-radius: 5px; background: #4B0082; color: #FFD700; height: 120px; }
+        button { padding: 12px; background: #FFD700; color: #4B0082; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #FFA500; }
+        a { color: #FFD700; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .actions { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ chat.name }}</h1>
+        <div class="meta">
+            <h2>Personaje: {{ character.name }}</h2>
+            <div class="actions">
+                <a href="{{ url_for('index') }}">Volver</a>
+                <a href="{{ url_for('delete_chat', chat_id=chat.id) }}" onclick="return confirm('¿Borrar este chat?')">Borrar Chat</a>
+            </div>
+        </div>
+        <div class="messages">
+            {% if messages %}
+                {% for msg in messages %}
+                <div class="message {{ msg.role }}">
+                    <strong>{{ 'Tú' if msg.role == 'user' else character.name }}:</strong> {{ msg.content }}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="message ai">Este es el inicio del chat. Escribe algo para comenzar.</div>
+            {% endif %}
+        </div>
+        <form action="{{ url_for('send_message', chat_id=chat.id) }}" method="POST">
+            <label for="message">Mensaje:</label>
+            <textarea name="message" id="message" placeholder="Escribe tu mensaje aquí..."></textarea>
+            <button type="submit">Enviar</button>
+        </form>
+    </div>
+</body>
+</html>
