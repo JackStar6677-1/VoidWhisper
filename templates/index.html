@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoidWhisper - Chat Uncensored</title>
+    <style>
+        body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #4B0082, #FFD700); color: #FFD700; margin: 0; padding: 20px; min-height: 100vh; }
+        .container { max-width: 1200px; margin: auto; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; box-shadow: 0 0 20px #FFD700; }
+        h1 { text-align: center; color: #FFD700; text-shadow: 0 0 10px #4B0082; }
+        .section { margin-bottom: 30px; }
+        .section h2 { border-bottom: 2px solid #FFD700; padding-bottom: 5px; }
+        .chat-list, .character-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        .chat-item, .character-item { background: #4B0082; padding: 10px; border-radius: 5px; border: 1px solid #FFD700; }
+        .chat-item a, .character-item a { color: #FFD700; text-decoration: none; }
+        .chat-item a:hover, .character-item a:hover { text-decoration: underline; }
+        form { display: flex; flex-direction: column; gap: 10px; }
+        label { font-weight: bold; }
+        input, select, textarea { padding: 10px; border: 2px solid #FFD700; border-radius: 5px; background: #4B0082; color: #FFD700; }
+        button { padding: 10px; background: #FFD700; color: #4B0082; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #FFA500; }
+        .delete-btn { background: #DC3545; color: white; }
+        .delete-btn:hover { background: #C82333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VoidWhisper - Chat Uncensored</h1>
+        <p>Habla sin límites. Crea personajes, chats y genera historias. Todo local y privado.</p>
+
+        <div class="section">
+            <h2>Chats</h2>
+            <div class="chat-list">
+                {% for chat in chats %}
+                <div class="chat-item">
+                    <a href="{{ url_for('chat_view', chat_id=chat.id) }}">{{ chat.name }}</a>
+                    <a href="{{ url_for('delete_chat', chat_id=chat.id) }}" class="delete-btn" onclick="return confirm('¿Borrar este chat?')">Borrar</a>
+                </div>
+                {% endfor %}
+            </div>
+            <form action="{{ url_for('create_chat') }}" method="POST">
+                <label for="chat_name">Nombre del Chat:</label>
+                <input type="text" id="chat_name" name="name" required>
+                <label for="character">Personaje:</label>
+                <select name="character_id" required>
+                    {% for char in characters %}
+                    <option value="{{ char.id }}">{{ char.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Crear Chat</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>Personajes</h2>
+            <div class="character-list">
+                {% for char in characters %}
+                <div class="character-item">
+                    {{ char.name }}
+                    <a href="{{ url_for('edit_character', char_id=char.id) }}">Editar</a>
+                    <a href="{{ url_for('delete_character', char_id=char.id) }}" class="delete-btn" onclick="return confirm('¿Borrar este personaje?')">Borrar</a>
+                </div>
+                {% endfor %}
+            </div>
+            <form action="{{ url_for('create_character') }}" method="POST">
+                <label for="char_name">Nombre del Personaje:</label>
+                <input type="text" id="char_name" name="name" required>
+                <label for="system_prompt">System Prompt:</label>
+                <textarea name="system_prompt" rows="5" required>Escribe el prompt del sistema para este personaje...</textarea>
+                <button type="submit">Crear Personaje</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

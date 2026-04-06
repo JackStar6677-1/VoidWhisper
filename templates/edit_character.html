@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Personaje - VoidWhisper</title>
+    <style>
+        body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #4B0082, #FFD700); color: #FFD700; margin: 0; padding: 20px; min-height: 100vh; }
+        .container { max-width: 800px; margin: auto; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; box-shadow: 0 0 20px #FFD700; }
+        h1 { text-align: center; color: #FFD700; text-shadow: 0 0 10px #4B0082; }
+        form { display: flex; flex-direction: column; }
+        label { margin-top: 10px; font-weight: bold; }
+        input, textarea { padding: 10px; border: 2px solid #FFD700; border-radius: 5px; background: #4B0082; color: #FFD700; }
+        button { margin-top: 20px; padding: 10px; background: #FFD700; color: #4B0082; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #FFA500; }
+        a { color: #FFD700; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Editar Personaje</h1>
+        <form method="POST">
+            <label for="name">Nombre:</label>
+            <input type="text" id="name" name="name" value="{{ character.name }}" required>
+
+            <label for="system_prompt">System Prompt:</label>
+            <textarea id="system_prompt" name="system_prompt" rows="10" required>{{ character.system_prompt }}</textarea>
+
+            <button type="submit">Guardar Cambios</button>
+        </form>
+        <br>
+        <a href="{{ url_for('index') }}">Volver</a>
+    </div>
+</body>
+</html>
