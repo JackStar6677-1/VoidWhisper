@@ -74,6 +74,7 @@
                     <option value="{{ char.id }}">{{ char.name }}</option>
                     {% endfor %}
                 </select>
+                <button type="button" onclick="editFromBase()">Editar y Crear desde Base</button>
                 <label for="char_name">Nombre del Personaje:</label>
                 <input type="text" id="char_name" name="name" required>
                 <label for="system_prompt">System Prompt:</label>
@@ -94,6 +95,16 @@
                 const selectedId = selector.value;
                 if (selectedId && promptMap[selectedId]) {
                     promptArea.value = promptMap[selectedId];
+                }
+            }
+
+            function editFromBase() {
+                const selector = document.getElementById('base_character');
+                const selectedId = selector.value;
+                if (selectedId) {
+                    window.location.href = "{{ url_for('edit_new_character', base_id=0) }}".replace('0', selectedId);
+                } else {
+                    alert('Selecciona un personaje base primero.');
                 }
             }
         </script>
