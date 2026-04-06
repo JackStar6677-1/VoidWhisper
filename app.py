@@ -127,14 +127,40 @@ def load_model(model_name, use_quantization=None):
     
     print(f'Cargando modelo {model_name}...')
     
-    # Para modelos GGUF, usar el tokenizador de base de Mistral en lugar del modelo cuantizado
+    # Estrategia 1: Intentar cargar tokenizador del modelo base
+    # (Inspirado en text-generation-webui)
     tokenizer_model = 'mistralai/Mistral-7B-Instruct-v0.1'
     try:
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_model, use_fast=False, trust_remote_code=True)
+        print(f'Intentando cargar tokenizador de {tokenizer_model}...')
+        tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_model, 
+            use_fast=False, 
+            trust_remote_code=True
+        )
+        print('✓ Tokenizador cargado con use_fast=False')
     except Exception as e:
-        print(f'Error loading tokenizer for {tokenizer_model}: {e}')
-        print('Retrying with alternative approach...')
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_model, use_fast=True)
+        print(f'Error: {e}')
+        print('Intentando cargar con use_fast=True...')
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(
+                tokenizer_model, 
+                use_fast=True,
+                trust_remote_code=True
+            )
+            print('✓ Tokenizador cargado con use_fast=True')
+        except Exception as e2:
+            print(f'Error alternativo: {e2}')
+            print('Intentando cargar tokenizador del modelo GGUF directamente...')
+            try:
+                tokenizer = AutoTokenizer.from_pretrained(
+                    model_name,
+                    use_fast=False,
+                    trust_remote_code=True
+                )
+                print('✓ Tokenizador del modelo GGUF cargado')
+            except Exception as e3:
+                print(f'Error final: {e3}')
+                raise ValueError(f"No se pudo cargar el tokenizador. Intenta descargar el repositorio del modelo manualmente.")
     
     # Configuración para VRAM limitada (MX450 con 2GB)
     model_kwargs = {
@@ -165,13 +191,24 @@ def load_model(model_name, use_quantization=None):
         model_kwargs['torch_dtype'] = torch.float16
     
     from transformers import AutoModelForCausalLM
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        **model_kwargs
-    )
+    print(f'Cargando modelo con config: {model_kwargs}...')
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            **model_kwargs
+        )
+    except Exception as e:
+        print(f'Error al cargar modelo: {e}')
+        # Fallback: cargar sin quantización
+        print('Intentando cargar sin quantización...')
+        model_kwargs.pop('quantization_config', None)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            **model_kwargs
+        )
     
     current_model_name = model_name
-    print(f'✅ Modelo cargado. Métodos habilitados: Sin censura')
+    print(f"✅ Modelo '{model_name}' cargado correctamente. Métodos habilitados: Sin censura")
 
 
 with app.app_context():
