@@ -5,7 +5,7 @@ Un entorno local para chatear con modelos de lenguaje sin censura, con personaje
 ## Características
 
 - **Chats Múltiples**: Crea, gestiona y borra conversaciones independientes.
-- **Personajes Personalizables**: Crea y edita personajes con prompts del sistema. Incluye personajes predefinidos como Saori Sumisa y un perfil de Operador genérico.
+- **Personajes Personalizables**: Crea y edita personajes con prompts del sistema. Incluye personajes predefinidos
 - **Interfaz Web Royal**: Diseño elegante en morado y dorado.
 - **Almacenamiento Local**: Usa SQLite para persistir chats, personajes y perfil de usuario.
 - **Modelo Uncensored**: Basado en jondurbin/airoboros-l2-1.3b, sin filtros éticos.
