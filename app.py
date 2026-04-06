@@ -8,7 +8,12 @@ import json
 import torch
 from datetime import datetime, timedelta
 from sqlalchemy import inspect
-from transformers import AutoTokenizer, AutoModelForCausalLM
+try:
+    from airllm import AutoModel as AirAutoModel
+    AIRLLM_AVAILABLE = True
+except ImportError:
+    AIRLLM_AVAILABLE = False
+from transformers import AutoTokenizer
 
 current_model_name = None
 
@@ -62,7 +67,9 @@ class AuthUser(UserMixin, db.Model):
     reset_expires = db.Column(db.DateTime, nullable=True)
 
 DEFAULT_SETTINGS = {
-    'model_name': 'jondurbin/airoboros-l2-7b-gpt4-1.4.1',
+    'model_name': 'TheBloke/Mistral-7B-Instruct-v0.1-GGUF',  # Modelo cuantizado que cabe en 2GB
+    'use_airllm': 'false',
+    'use_quantization': '4bit',  # Opciones: None, '4bit', '8bit' - recomendado '4bit' para MX450
     'temperature': '0.8',
     'top_p': '0.9',
     'max_length': '300',
@@ -99,6 +106,7 @@ def set_setting(key, value):
 def get_config():
     return {
         'model_name': get_setting('model_name', DEFAULT_SETTINGS['model_name']),
+        'use_quantization': get_setting('use_quantization', DEFAULT_SETTINGS['use_quantization']),
         'temperature': float(get_setting('temperature', DEFAULT_SETTINGS['temperature'])),
         'top_p': float(get_setting('top_p', DEFAULT_SETTINGS['top_p'])),
         'max_length': int(get_setting('max_length', DEFAULT_SETTINGS['max_length'])),
@@ -106,19 +114,50 @@ def get_config():
     }
 
 
-def load_model(model_name):
+def load_model(model_name, use_quantization=None):
     global tokenizer, model, current_model_name
     if current_model_name == model_name and 'model' in globals() and 'tokenizer' in globals() and model is not None and tokenizer is not None:
         return
-    print(f'Cargando modelo {model_name}... Esto puede tomar tiempo.')
+    
+    print(f'Cargando modelo {model_name}...')
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    # Configuración para VRAM limitada (MX450 con 2GB)
+    model_kwargs = {
+        'device_map': 'auto',
+        'low_cpu_mem_usage': True,
+    }
+    
+    if use_quantization and use_quantization != 'false' and use_quantization != 'none':
+        print(f'Aplicando quantización {use_quantization}...')
+        from transformers import BitsAndBytesConfig
+        
+        if use_quantization == '4bit':
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.float16
+            )
+        else:  # 8bit
+            bnb_config = BitsAndBytesConfig(
+                load_in_8bit=True,
+                load_in_8bit_skip_modules=['lm_head'],
+            )
+        
+        model_kwargs['quantization_config'] = bnb_config
+    else:
+        # Sin quantización, usar float16 para ahorrar memoria
+        model_kwargs['torch_dtype'] = torch.float16
+    
+    from transformers import AutoModelForCausalLM
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.float16,
-        device_map='auto'
+        **model_kwargs
     )
+    
     current_model_name = model_name
-    print('Modelo cargado. ¡Sin límites!')
+    print(f'✅ Modelo cargado. Métodos habilitados: Sin censura')
 
 
 with app.app_context():
@@ -392,12 +431,17 @@ def chat_view(chat_id):
 def send_message(chat_id):
     global tokenizer, model
     config = get_config()
-    load_model(config['model_name'])
+    load_model(config['model_name'], config['use_quantization'])
     chat = Chat.query.get_or_404(chat_id)
+    character = Character.query.get(chat.character_id)
     messages = json.loads(chat.messages)
+    
+    user_input = request.form['message']
+    message_format = request.form.get('format', 'normal')
+    
     messages.append({'role': 'user', 'content': user_input, 'format': message_format})
 
-    user_info = json.loads(user.info)
+    user_info = json.loads(current_user.info)
     info_lines = [f"{key}: {value}" for key, value in user_info.items()]
     user_info_text = '\n'.join(info_lines)
     history_lines = []
