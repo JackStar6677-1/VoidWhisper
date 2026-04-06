@@ -73,10 +73,22 @@ VoidWhisper utiliza **Mistral-7B-Instruct** cuantizado a 4-bit con BitsAndBytes 
    pip install bitsandbytes transformers torch torchvision torchaudio
    ```
 
-4. Ejecuta la app:
+4. **Opción A: Ejecuta desde terminal**
    ```bash
    python app.py
    ```
+
+   **Opción B: Ejecuta desde Escritorio (Recomendado)**
+   
+   Para iniciar fácilmente desde el escritorio:
+   
+   ```bash
+   .\CREATE_DESKTOP_SHORTCUT.bat
+   ```
+   
+   Esto crea un acceso directo "VoidWhisper" en tu escritorio. Luego solo necesitas hacer doble clic para iniciar.
+   
+   También puedes ejecutar `RUN_VOIDWHISPER.bat` directamente en la carpeta del proyecto.
 
 5. Abre tu navegador en:
    ```text
