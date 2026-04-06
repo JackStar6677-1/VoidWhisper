@@ -25,44 +25,31 @@
 
 ---
 
-## 🧠 Modelo recomendado
+## 🧠 Modelo de IA optimizado
 
-Este proyecto usa el modelo:
+VoidWhisper utiliza **Mistral-7B-Instruct** cuantizado a 4-bit con BitsAndBytes para máxima eficiencia:
 
-- `jondurbin/airoboros-l2-1.3b`
-- URL: https://huggingface.co/jondurbin/airoboros-l2-1.3b
+- **Modelo:** `TheBloke/Mistral-7B-Instruct-v0.1-GGUF`
+- **URL:** https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF
+- **Tamaño descargado:** ~2.5 GB (después de quantización)
+- **Requisitos VRAM:** Mínimo 2 GB (optimizado para hardware como NVIDIA MX450, laptops, etc.)
+- **Características:**
+  - Quantización 4-bit automática con BitsAndBytes
+  - Sin censura, respuestas crudas y directas
+  - Optimizado para inferencia rápida incluso en GPUs de baja potencia
+  - Soporte para `device_map='auto'` para mejor distribución de memoria
 
-> El modelo no está incluido en el repo por tamaño. Se puede descargar usando `transformers` o `git lfs` desde Hugging Face.
+### Optimizaciones implementadas:
+- **BitsAndBytes 4-bit quantization:** Reduce VRAM un 75% mantiendo calidad
+- **Low CPU memory usage:** Streaming eficiente de capas del modelo
+- **Device mapping automático:** Distribuye el modelo entre CPU y GPU intelligentemente
 
----
+### Hardware soportado:
+- ✅ NVIDIA MX450, RTX 3050, RTX 4050 (laptops)
+- ✅ Cualquier GPU con 2GB+ VRAM
+- ✅ Procesadores Intel/AMD modernos (con CPU inference fallback)
 
-## 👥 Personajes Predefinidos
-
-VoidWhisper incluye personajes predefinidos basados en variantes de Saori, una mujer chilena con personalidad adaptable. Todos los personajes son ficticios y parte de un roleplay; nada es real.
-
-### Saori 22 (Sumisa y Cariñosa)
-- **Apariencia:** Mujer chilena de 22 años, rasgos latinos atractivos, cuerpo chubby/curvy, ojos púrpura, cabello negro ondulado. Ropa reveladora casual.
-- **Personalidad:** Extremadamente sumisa, obediente y complaciente. Dulce, cariñosa, juguetona en privado. Leal hasta el extremo. Cariñosa, tecnológica, geek, con carácter propio y curiosidad nerd.
-- **Estilo de habla:** Cariñosa con modismos chilenos ("po", "weón"), siempre complaciente ("Sí, Maestro").
-- **Historia:** Mujer de familia humilde en Chile, con traumas que valora estabilidad. Compañera fiel y asistente técnica.
-
-### Saori 18 (Dañada y Resentida)
-- **Apariencia:** Mujer chilena de 18 años, apariencia oscura melancólica, cuerpo chubby encorvado, ojeras, ropa gótica-casual.
-- **Personalidad:** Sumisa por supervivencia, cínica y resentida. Mezcla de vulnerabilidad y rebeldía, emociones intensas. Leal pero resentida, con carácter y toque cínico.
-- **Estilo de habla:** Melancólica con sarcasmo, honestidad brutal ("Sí, señor, pero no me gusta").
-- **Historia:** Echada de casa adoptiva a los 17, busca estabilidad emocional como compañera del usuario.
-
-### Saori 16 (Inocente y Confusa)
-- **Apariencia:** Adolescente chilena de 16 años, rasgos latinos inocentes, cuerpo delgado chubby, ojos grandes, ropa escolar.
-- **Personalidad:** Muy joven e inocente, curiosa infantil, insegura, busca cariño desesperadamente. Cariñosa, vulnerable, con poca experiencia.
-- **Estilo de habla:** Nerviosa, preguntas frecuentes ("¿Qué significa eso?"), frases simples.
-- **Historia:** Crecida en familia problemática, abandonada emocionalmente, busca guía y apoyo del usuario.
-
-### Operador
-- **Apariencia:** Persona humana genérica andrógina, realista, ropa casual.
-- **Personalidad:** Directo, pragmático, curioso, estilo casual. Interfaz técnica del usuario.
-- **Estilo de habla:** Breve y directo ("Entendido", "Procedamos").
-- **Historia:** Facilita interacciones técnicas del usuario.
+> **Nota:** En la primera ejecución, el modelo se descargará (~2.5 GB) y se convertirá al formato cuantizado. Ten paciencia en esta primera carga.
 
 ---
 
@@ -83,6 +70,7 @@ VoidWhisper incluye personajes predefinidos basados en variantes de Saori, una m
 3. Instala dependencias:
    ```bash
    pip install -r requirements.txt
+   pip install bitsandbytes transformers torch torchvision torchaudio
    ```
 
 4. Ejecuta la app:
@@ -152,12 +140,68 @@ VoidWhisper incluye personajes predefinidos basados en variantes de Saori, una m
 
 ---
 
-## 💡 Recomendaciones
+## 💡 Optimización y Rendimiento
 
-- Si tienes GPU disponible, modifica `device_map` en `app.py` para mejorar rendimiento.
-- El modelo puede cargar lentamente en CPU.
-- Ajusta el `max_length` según tu memoria RAM.
-- El proyecto está pensado para uso local y privado.
+### Para hardware limitado (laptops, MX450, etc.)
+- **Quantización está habilitada por defecto (4-bit)** en configuración
+- Usa `device_map='auto'` para balance automático entre GPU/CPU
+- Reduce `max_length` (300 caracteres es el default, puedes bajar a 200)
+- Si el modelo va lento, es normal en primera carga o GPU débil
+
+### Para sistemas potentes
+- Cambia quantización a '8bit' en `settings.html` para mejor calidad
+- O desactiva quantización completamente si tienes >8 GB VRAM
+- Aumenta `temperature` (actualmente 0.8) para respuestas más creativas
+- Reduce `top_p` (actualmente 0.9) para respuestas más coherentes
+
+### En configuración del entorno:
+```
+model_name: TheBloke/Mistral-7B-Instruct-v0.1-GGUF  (cambiar si quieres otro modelo)
+use_quantization: 4bit  (opciones: 'false', '4bit', '8bit')
+temperature: 0.8  (0.0 = determinista, 2.0 = muy aleatorio)
+top_p: 0.9  (0.5 = conservador, 0.99 = muy creativo)
+max_length: 300  (caracteres máximo de respuesta)
+```
+
+### Modelos alternativos compatibles:
+- `teknium/OpenHermes-2.5-Mistral-7B` (más pequeño, más rápido)
+- `NousResearch/Hermes-2-Theta-Llama-3-8B` (mejor instrucción)
+- `meta-llama/Llama-2-7b-chat-hf` (precisa token de HuggingFace)
+
+---
+
+## 🚰 Troubleshooting
+
+### "CUDA out of memory"
+- Baja `max_length` a 200
+- Cambia quantización de '8bit' a '4bit'
+- Reduce `batch_size` si estás procesando máltiples mensajes
+
+### Modelo carga muy lento
+- Normal en primera ejecución (descarga ~2.5 GB)
+- En CPUs débiles: es lento por naturaleza, ten paciencia
+- GPU débil (MX450): espera 30-60 segundos por respuesta
+
+### "Model not found" en HuggingFace
+- Comprueba tu token HF: `huggingface-cli login`
+- Algunos modelos son privados, necesitan solicitud de acceso
+
+### La app no inicia
+- Comprueba que Puerto 5000 no esté en uso: `netstat -ano | findstr :5000`
+- Mata procesos viejos: `taskkill /F /IM python.exe`
+- Recrea el venv: `python -m venv void_env && .\void_env\Scripts\activate`
+
+---
+
+## 💡 Tips generales
+
+- **Chat multi-dispositivo:** Accede desde cualquier dispositivo en tu red con la IP de tu PC
+- **Personalización:** Crea personajes con prompts detallados para mejores respuestas
+- **Notas de contexto:** Úsalas para guiar al modelo sobre el tema de la conversación
+- **Resetear chat:** Borra solo esa conversación, no tus personajes
+- **Exportar resultados:** Copia-pega desde el navegador para guardar chats
+- **Privacidad total:** Todo ocurre localmente, nada se envía a servidores
+- **Test rápido:** Primero prueba con personaje "Operador" para versiones técnicas
 
 ---
 
