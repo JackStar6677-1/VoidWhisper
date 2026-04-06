@@ -29,8 +29,14 @@
             <h2>Personaje: {{ character.name }}</h2>
             <div class="actions">
                 <a href="{{ url_for('index') }}">Volver</a>
+                <a href="{{ url_for('settings_view') }}">Configuración</a>
+                <a href="{{ url_for('clear_chat', chat_id=chat.id) }}" onclick="return confirm('¿Resetear este chat? Se borrará el historial.')">Resetear Chat</a>
                 <a href="{{ url_for('delete_chat', chat_id=chat.id) }}" onclick="return confirm('¿Borrar este chat?')">Borrar Chat</a>
             </div>
+        </div>
+        {% if chat.context_note %}
+        <div class="note" style="margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid #FFD700; border-radius: 8px;">
+            <strong>Nota de contexto:</strong> {{ chat.context_note }}
         </div>
         <div class="messages">
             {% if messages %}

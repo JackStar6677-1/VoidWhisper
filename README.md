@@ -1,99 +1,137 @@
 # VoidWhisper
 
-Un entorno local para chatear con modelos de lenguaje sin censura, con personajes personalizables y gestión de chats. Diseñado para privacidad total y uso local.
+**VoidWhisper** es una interfaz local para conversar con un modelo de lenguaje en modo crudo, directo y sin filtros. Está diseñada para correr completamente en tu máquina, con personajes personalizables, múltiples chats y configuración completa desde la web.
 
-## Características
+---
 
-- **Chats Múltiples**: Crea, gestiona y borra conversaciones independientes.
-- **Personajes Personalizables**: Crea y edita personajes con prompts del sistema. Incluye personajes predefinidos
-- **Interfaz Web Royal**: Diseño elegante en morado y dorado.
-- **Almacenamiento Local**: Usa SQLite para persistir chats, personajes y perfil de usuario.
-- **Modelo Uncensored**: Basado en jondurbin/airoboros-l2-1.3b, sin filtros éticos.
-- **Privacidad**: Todo corre localmente, sin envío de datos a servidores externos.
+## ✨ Características principales
 
-## Requisitos
+- **Gestión completa de chats**
+  - Crea, borra y resetea conversaciones.
+  - Agrega notas de contexto a cada chat para controlar la narrativa.
+- **Personajes 100% configurables**
+  - Crea personajes nuevos desde cero.
+  - Duplicar personajes existentes para modificarlos sin perder la base.
+  - Edita el `system prompt` directamente desde la interfaz.
+- **Control total del modelo**
+  - Ajusta `model_name`, `temperature`, `top_p`, `max_length` y el prefijo no-limit desde la UI.
+  - No hace falta tocar código para cambiar la experiencia.
+- **Perfil de usuario persistente**
+  - Guarda nombre, perfil, intereses y tono de usuario.
+  - El modelo usa este perfil en cada conversación.
+- **Almacenamiento local**
+  - Base de datos SQLite para chats, personajes y ajustes.
+  - Todo ocurre en tu PC.
 
-- Python 3.8+
-- Git
-- GitHub CLI (`gh`) autenticado
+---
 
-## Instalación
+## 🧠 Modelo recomendado
 
-1. Clona o descarga el repo:
-   ```
+Este proyecto usa el modelo:
+
+- `jondurbin/airoboros-l2-1.3b`
+- URL: https://huggingface.co/jondurbin/airoboros-l2-1.3b
+
+> El modelo no está incluido en el repo por tamaño. Se puede descargar usando `transformers` o `git lfs` desde Hugging Face.
+
+---
+
+## 🚀 Instalación rápida
+
+1. Clona el repositorio:
+   ```bash
    git clone https://github.com/JackStar6677-1/VoidWhisper.git
    cd VoidWhisper
    ```
 
-2. Crea un entorno virtual:
-   ```
+2. Crea y activa el entorno virtual:
+   ```bash
    python -m venv void_env
-   .\void_env\Scripts\activate  # Windows
+   .\void_env\Scripts\activate
    ```
 
 3. Instala dependencias:
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
-4. Descarga el modelo (no incluido en el repo por tamaño):
-   - Busca el modelo `jondurbin/airoboros-l2-1.3b` en Hugging Face.
-   - Descarga los archivos del modelo desde la página oficial del autor (usa `git lfs` si es necesario).
-   - Coloca los archivos en una carpeta accesible, o deja que Transformers los descargue automáticamente al ejecutar.
-
-## Uso
-
-1. Ejecuta la app:
-   ```
+4. Ejecuta la app:
+   ```bash
    python app.py
    ```
 
-2. Abre tu navegador en `http://127.0.0.1:5000/`.
+5. Abre tu navegador en:
+   ```text
+   http://127.0.0.1:5000/
+   ```
 
-3. **Crear un Personaje**:
-   - En la página principal, ve a la sección "Personajes".
-   - Llena el formulario: Nombre y System Prompt (describe personalidad, apariencia, etc.).
-   - Ejemplo: "Eres un guerrero vikingo malvado, responde agresivamente."
-   - Haz clic en "Crear Personaje".
+---
 
-4. **Crear un Chat**:
-   - Selecciona un personaje de la lista.
-   - Ingresa un nombre para el chat.
-   - Haz clic en "Crear Chat".
+## 🧩 Uso de la interfaz
 
-5. **Chatear**:
-   - En la página del chat, escribe mensajes y envía.
-   - El modelo responde como el personaje seleccionado, conociendo tu perfil.
+### Crear un personaje
 
-6. **Editar/Borrar**:
-   - Usa los botones en la lista de chats/personajes.
+1. Ve a la sección `Personajes`.
+2. Selecciona un personaje base para copiar su prompt si quieres partir de una plantilla.
+3. Escribe un nombre y el `system prompt` del personaje.
+4. Haz clic en `Crear Personaje`.
 
-## Estructura del Proyecto
+### Duplicar un personaje
 
-- `app.py`: Servidor Flask con lógica de DB y modelo.
-- `templates/`: HTML para interfaz.
-- `voidwhisper.db`: Base de datos SQLite (creada al ejecutar).
-- `requirements.txt`: Dependencias.
+- Usa el botón `Duplicar` en la lista de personajes.
+- Luego edita la copia desde la UI.
 
-## Notas
+### Crear un chat
 
-- El modelo se carga al iniciar la app (puede tomar tiempo en CPU).
-- Si tienes GPU, ajusta `device_map` en `app.py`.
-- Personajes predefinidos: Saori 22, Saori 18, Saori 16 y Operador (perfil de usuario genérico).
-- Saori 16 es inocente, con poca experiencia en el mundo y problemas con sus padres.
-- Saori 18 fue echada de casa y responde con emociones intensas.
-- La UI permite crear personajes sin IDE: todo via web.
+1. Elige el personaje que quieras usar.
+2. Escribe un nombre para el chat.
+3. Agrega una nota de contexto o instrucción inicial para ese chat.
+4. Crea el chat.
 
-## Licencia
+### Chatear
 
-MIT - Usa bajo tu responsabilidad.
+- Envía mensajes desde la ventana del chat.
+- El sistema incluye toda la conversación previa y la nota de contexto para mantener el hilo.
+- Puedes resetear el chat con `Resetear Chat` para empezar de nuevo sin eliminarlo.
 
-## Notas
-- Usa CPU debido a limitaciones de VRAM. Si tienes más VRAM, puedes cambiar a GPU editando el script.
-- El modelo es uncensored: no tiene filtros éticos, responde a cualquier tema.
-- Para modelos más grandes, considera usar Ollama o LM Studio con quants optimizados.
+### Ajustes del entorno
 
-## Notas
-- Usa CPU debido a limitaciones de VRAM. Si tienes más VRAM, puedes cambiar a GPU editando el script.
-- El modelo es uncensored: no tiene filtros éticos, responde a cualquier tema.
-- Para modelos más grandes, considera usar Ollama o LM Studio con quants optimizados.
+- Ve a `Configuración del entorno` desde la página principal o desde el chat.
+- Cambia:
+  - modelo usado
+  - parámetros de generación
+  - prompt de no-limit
+  - datos del operador
+
+---
+
+## 🛠️ Estructura del proyecto
+
+- `app.py` — aplicación Flask, lógica de chat, configuración y carga de modelo.
+- `templates/` — interfaz web del proyecto.
+- `templates/settings.html` — página de configuración.
+- `voidwhisper.db` — base de datos SQLite creada automáticamente.
+- `launch_voidwhisper.bat` — lanzador rápido para Windows.
+- `requirements.txt` — dependencias.
+
+---
+
+## 💡 Recomendaciones
+
+- Si tienes GPU disponible, modifica `device_map` en `app.py` para mejorar rendimiento.
+- El modelo puede cargar lentamente en CPU.
+- Ajusta el `max_length` según tu memoria RAM.
+- El proyecto está pensado para uso local y privado.
+
+---
+
+## 📌 Notas de seguridad
+
+- Este sistema está diseñado para respuestas muy directas.
+- No incluye validación avanzada de contenido. Úsalo bajo tu responsabilidad.
+
+---
+
+## 📜 Licencia
+
+MIT License.

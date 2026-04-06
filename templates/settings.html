@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración - VoidWhisper</title>
+    <style>
+        body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #4B0082, #FFD700); color: #FFD700; margin: 0; padding: 20px; min-height: 100vh; }
+        .container { max-width: 1000px; margin: auto; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 10px; box-shadow: 0 0 20px #FFD700; }
+        h1, h2 { text-align: center; color: #FFD700; text-shadow: 0 0 10px #4B0082; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 10px; border: 2px solid #FFD700; border-radius: 5px; background: #4B0082; color: #FFD700; }
+        textarea { min-height: 160px; }
+        .full-width { grid-column: 1 / -1; }
+        .actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        button { padding: 12px; background: #FFD700; color: #4B0082; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #FFA500; }
+        a { color: #FFD700; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .note { background: rgba(255,255,255,0.08); padding: 12px; border-radius: 8px; border: 1px solid #FFD700; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="actions">
+            <a href="{{ url_for('index') }}">← Volver al inicio</a>
+            <h1>Configuración del entorno</h1>
+            <span></span>
+        </div>
+        <p class="note">Aquí puedes cambiar el modelo, los parámetros de generación y los datos del operador sin tocar el código. El cambio de modelo recargará el modelo automáticamente.</p>
+        <form method="POST">
+            <div>
+                <h2>Parámetros del modelo</h2>
+                <label for="model_name">Nombre del modelo</label>
+                <input type="text" id="model_name" name="model_name" value="{{ config.model_name }}" required>
+
+                <label for="temperature">Temperature</label>
+                <input type="text" id="temperature" name="temperature" value="{{ config.temperature }}" required>
+
+                <label for="top_p">Top p</label>
+                <input type="text" id="top_p" name="top_p" value="{{ config.top_p }}" required>
+
+                <label for="max_length">Max length</label>
+                <input type="number" id="max_length" name="max_length" value="{{ config.max_length }}" required>
+            </div>
+
+            <div>
+                <h2>Mensaje sin límites</h2>
+                <label for="no_limit_prefix">Prefijo no-limit</label>
+                <textarea id="no_limit_prefix" name="no_limit_prefix" class="full-width">{{ config.no_limit_prefix }}</textarea>
+            </div>
+
+            <div class="full-width">
+                <h2>Perfil del operador</h2>
+                <label for="user_name">Nombre de usuario</label>
+                <input type="text" id="user_name" name="user_name" value="{{ user.name }}" required>
+
+                <label for="user_profile">Perfil</label>
+                <input type="text" id="user_profile" name="user_profile" value="{{ user_info.profile }}" required>
+
+                <label for="user_interests">Intereses</label>
+                <input type="text" id="user_interests" name="user_interests" value="{{ user_info.interests }}" required>
+
+                <label for="user_tone">Tono de usuario</label>
+                <input type="text" id="user_tone" name="user_tone" value="{{ user_info.tone }}" required>
+            </div>
+
+            <div class="full-width" style="text-align: center;">
+                <button type="submit">Guardar configuración</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
