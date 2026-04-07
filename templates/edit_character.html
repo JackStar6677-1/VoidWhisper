@@ -1,34 +1,6 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Personaje - VoidWhisper</title>
-    <style>
-        body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #120A21, #251E11); color: #C5A059; margin: 0; padding: 20px; min-height: 100vh; }
-        .container { max-width: 800px; margin: auto; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(197, 160, 89, 0.15); }
-        h1 { text-align: center; color: #C5A059; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
-        form { display: flex; flex-direction: column; }
-        label { margin-top: 10px; font-weight: bold; }
-        input, textarea { padding: 10px; border: 2px solid #C5A059; border-radius: 5px; background: #1A0F2E; color: #C5A059; }
-        button { margin-top: 20px; padding: 10px; background: #C5A059; color: #1A0F2E; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #A88544; }
-        a { color: #C5A059; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-
-        /* Responsivo para móviles */
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .container { padding: 10px; }
-            h1 { font-size: 1.5em; }
-            input, textarea { font-size: 16px; padding: 12px; }
-            button { padding: 14px; font-size: 16px; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Editar Personaje</h1>
+{% extends "base.html" %}
+{% block content %}
+<h1>Editar Personaje</h1>
         <form method="POST">
             <label for="name">Nombre:</label>
             <input type="text" id="name" name="name" value="{{ character.name }}" required>
@@ -40,6 +12,4 @@
         </form>
         <br>
         <a href="{{ url_for('index') }}">Volver</a>
-    </div>
-</body>
-</html>
+{% endblock %}

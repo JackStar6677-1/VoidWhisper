@@ -1,37 +1,6 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crear Personaje desde Base - VoidWhisper</title>
-    <style>
-        body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #120A21, #251E11); color: #C5A059; margin: 0; padding: 20px; min-height: 100vh; }
-        .container { max-width: 800px; margin: auto; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(197, 160, 89, 0.15); }
-        h1 { text-align: center; color: #C5A059; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
-        form { display: flex; flex-direction: column; gap: 12px; }
-        label { font-weight: bold; }
-        input, textarea { width: 100%; padding: 10px; border: 2px solid #C5A059; border-radius: 5px; background: #1A0F2E; color: #C5A059; }
-        textarea { min-height: 300px; }
-        button { padding: 12px; background: #C5A059; color: #1A0F2E; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #A88544; }
-        .note { background: rgba(255,255,255,0.08); padding: 12px; border-radius: 8px; border: 1px solid #C5A059; }
-        a { color: #C5A059; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-
-        /* Responsivo para móviles */
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .container { padding: 10px; }
-            h1 { font-size: 1.5em; }
-            input, textarea { font-size: 16px; padding: 12px; }
-            button { padding: 14px; font-size: 16px; }
-            .note { padding: 10px; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Crear Personaje desde "{{ base_character.name }}"</h1>
+{% extends "base.html" %}
+{% block content %}
+<h1>Crear Personaje desde "{{ base_character.name }}"</h1>
         <div class="note">
             <p><strong>Base seleccionada:</strong> {{ base_character.name }}</p>
             <p>Edita el nombre y el prompt del sistema para crear un nuevo personaje basado en este. Puedes modificar cualquier aspecto: apariencia, personalidad, historia, etc.</p>
@@ -47,6 +16,4 @@
         </form>
         <br>
         <a href="{{ url_for('index') }}">← Volver sin crear</a>
-    </div>
-</body>
-</html>
+{% endblock %}
