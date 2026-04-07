@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -14,6 +14,30 @@ try:
 except ImportError:
     AIRLLM_AVAILABLE = False
 from transformers import AutoTokenizer, AutoModelForCausalLM
+
+import sys
+import threading
+from collections import deque
+
+class LogCatcher:
+    def __init__(self):
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+        self.logs = deque(maxlen=200)
+        self.lock = threading.Lock()
+    
+    def write(self, text):
+        self.original_stdout.write(text)
+        if text.strip():
+            with self.lock:
+                self.logs.append(text.strip())
+                
+    def flush(self):
+        self.original_stdout.flush()
+
+global_log_catcher = LogCatcher()
+sys.stdout = global_log_catcher
+sys.stderr = global_log_catcher
 
 # Ensure sentencepiece is imported for tokenizer support
 try:
@@ -695,6 +719,12 @@ def delete_character(char_id):
     db.session.delete(character)
     db.session.commit()
     return redirect(url_for('index'))
+
+@app.route('/api/logs')
+@login_required
+def get_logs():
+    with global_log_catcher.lock:
+        return jsonify({'logs': list(global_log_catcher.logs)})
 
 if __name__ == '__main__':
     # def open_browser():

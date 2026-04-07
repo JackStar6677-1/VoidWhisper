@@ -117,6 +117,15 @@
             max-width: 450px;
         }
 
+        .container-chat {
+            max-width: 850px;
+            height: calc(100vh - 110px); /* Fill most of the screen */
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden; /* Let inner objects scroll */
+        }
+
         /* Typography Re-styling */
         h1, h2, h3 {
             color: var(--accent);
