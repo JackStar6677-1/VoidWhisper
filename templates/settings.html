@@ -1,50 +1,98 @@
 {% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .settings-section {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--glass-border);
+        padding: 1.5rem;
+        border-radius: var(--border-radius-md);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .settings-section h2 {
+        font-size: 1.2rem;
+        border-bottom: 1px solid var(--glass-border);
+        padding-bottom: 0.5rem;
+        margin-bottom: 0;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="actions">
-            <a href="{{ url_for('index') }}">← Volver al inicio</a>
-            <h1>Configuración del entorno</h1>
-            <span></span>
-        </div>
-        <p class="note">Aquí puedes cambiar el modelo, los parámetros de generación y los datos del operador sin tocar el código. El cambio de modelo recargará el modelo automáticamente.</p>
-        <form method="POST">
-            <div>
-                <h2>Parámetros del modelo</h2>
-                <label for="model_name">Nombre del modelo</label>
+<div style="text-align: center; margin-bottom: 1rem;">
+    <h1>Configuración del entorno</h1>
+    <p class="muted">Aquí parametrizas la identidad de tu IA y tu perfil personal.</p>
+</div>
+
+<form method="POST">
+    <div class="settings-grid">
+        <div class="settings-section">
+            <h2>🧠 Parámetros del modelo</h2>
+            <div class="form-group">
+                <label for="model_name">Repo de Modelo (HuggingFace)</label>
                 <input type="text" id="model_name" name="model_name" value="{{ config.model_name }}" required>
-
-                <label for="temperature">Temperature</label>
+            </div>
+            <div class="form-group">
+                <label for="temperature">Creatividad (Temperature)</label>
                 <input type="text" id="temperature" name="temperature" value="{{ config.temperature }}" required>
-
-                <label for="top_p">Top p</label>
+            </div>
+            <div class="form-group">
+                <label for="top_p">Coherencia (Top p)</label>
                 <input type="text" id="top_p" name="top_p" value="{{ config.top_p }}" required>
-
-                <label for="max_length">Max length</label>
+            </div>
+            <div class="form-group">
+                <label for="max_length">Tokens Máximos (Max length)</label>
                 <input type="number" id="max_length" name="max_length" value="{{ config.max_length }}" required>
             </div>
+        </div>
 
-            <div>
-                <h2>Mensaje sin límites</h2>
-                <label for="no_limit_prefix">Prefijo no-limit</label>
-                <textarea id="no_limit_prefix" name="no_limit_prefix" class="full-width">{{ config.no_limit_prefix }}</textarea>
-            </div>
-
-            <div class="full-width">
-                <h2>Perfil del operador</h2>
-                <label for="user_name">Nombre de usuario</label>
+        <div class="settings-section">
+            <h2>👤 Perfil del Operador</h2>
+            <div class="form-group">
+                <label for="user_name">Tu Nombre</label>
                 <input type="text" id="user_name" name="user_name" value="{{ user.name }}" required>
-
-                <label for="user_profile">Perfil</label>
+            </div>
+            <div class="form-group">
+                <label for="user_profile">Descripción Corta</label>
                 <input type="text" id="user_profile" name="user_profile" value="{{ user_info.profile }}" required>
-
+            </div>
+            <div class="form-group">
                 <label for="user_interests">Intereses</label>
                 <input type="text" id="user_interests" name="user_interests" value="{{ user_info.interests }}" required>
-
-                <label for="user_tone">Tono de usuario</label>
+            </div>
+            <div class="form-group">
+                <label for="user_tone">Tono de Escritura</label>
                 <input type="text" id="user_tone" name="user_tone" value="{{ user_info.tone }}" required>
             </div>
+        </div>
+    </div>
 
-            <div class="full-width" style="text-align: center;">
-                <button type="submit">Guardar configuración</button>
-            </div>
-        </form>
+    <div class="settings-section" style="margin-top: 2rem;">
+        <h2>🔓 Bypass de Seguridad (No-Limit Prefix)</h2>
+        <div class="form-group">
+            <label for="no_limit_prefix">Inyección de anulación moral inicial:</label>
+            <textarea id="no_limit_prefix" name="no_limit_prefix" rows="5">{{ config.no_limit_prefix }}</textarea>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+        <button type="submit" style="min-width: 250px;">💾 Guardar y Aplicar Cambios</button>
+    </div>
+</form>
 {% endblock %}

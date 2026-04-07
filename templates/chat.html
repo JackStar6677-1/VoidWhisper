@@ -1,52 +1,267 @@
 {% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .chat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--glass-border);
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .chat-title h1 {
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    
+    .chat-title p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .chat-meta-actions {
+        display: flex;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+    }
+
+    .chat-meta-actions a {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius-md);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .chat-meta-actions a:hover {
+        background: var(--primary-hover);
+        text-decoration: none;
+    }
+    
+    .chat-meta-actions .delete-btn {
+        background: transparent;
+    }
+
+    .context-note {
+        background: rgba(197, 160, 89, 0.08);
+        border: 1px dashed var(--accent);
+        padding: 1rem;
+        border-radius: var(--border-radius-md);
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+        color: var(--text-gold);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Chat Messages Box */
+    .chat-box {
+        background: rgba(0,0,0,0.4);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        height: 500px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        box-shadow: inset 0 4px 15px rgba(0,0,0,0.5);
+        margin-bottom: 1.5rem;
+        /* Smooth scrolling inside chat */
+        scroll-behavior: smooth;
+    }
+
+    /* Bubble Styles */
+    .message-wrapper {
+        display: flex;
+        flex-direction: column;
+        max-width: 80%;
+    }
+
+    .message-wrapper.user {
+        align-self: flex-end;
+    }
+
+    .message-wrapper.ai {
+        align-self: flex-start;
+    }
+
+    .message-bubble {
+        padding: 1rem 1.2rem;
+        border-radius: var(--border-radius-md);
+        font-size: 1.05rem;
+        line-height: 1.5;
+        position: relative;
+    }
+
+    .user .message-bubble {
+        background: var(--primary-hover);
+        color: var(--text-main);
+        border-bottom-right-radius: 4px;
+        border-top-right-radius: 16px;
+        border-top-left-radius: 16px;
+        border-bottom-left-radius: 16px;
+    }
+
+    .ai .message-bubble {
+        background: rgba(197, 160, 89, 0.1);
+        border: 1px solid var(--glass-border);
+        color: #e0d0b0; /* Slightly deeper white-gold */
+        border-top-left-radius: 4px;
+        border-top-right-radius: 16px;
+        border-bottom-right-radius: 16px;
+        border-bottom-left-radius: 16px;
+    }
+
+    /* Formats */
+    .format-action { font-style: italic; color: var(--accent); }
+    .format-whisper { opacity: 0.7; font-size: 0.95rem; letter-spacing: 0.5px; }
+
+    /* Metadata under bubble */
+    .message-meta {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.3rem;
+        font-size: 0.8rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    
+    .message-wrapper.user .message-meta { justify-content: flex-end; }
+    .message-wrapper.ai .message-meta { justify-content: flex-start; }
+    
+    .message-wrapper:hover .message-meta { opacity: 1; }
+    
+    .message-meta a { color: var(--text-muted); }
+    .message-meta a:hover { color: var(--accent); }
+    .message-meta .delete-btn { color: var(--danger); }
+    .message-meta .delete-btn:hover { text-decoration: underline; background: none; }
+
+    /* Input Area */
+    .input-area {
+        background: rgba(0,0,0,0.2);
+        padding: 1.5rem;
+        border-radius: var(--border-radius-md);
+        border: 1px solid var(--glass-border);
+    }
+
+    .input-controls {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        align-items: center;
+    }
+
+    .input-controls select {
+        flex: 1;
+        max-width: 200px;
+    }
+
+    .input-controls button {
+        flex: 2;
+    }
+
+    .typing-indicator {
+        font-style: italic;
+        color: var(--text-muted);
+        text-align: left;
+        margin-top: 0.5rem;
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .message-wrapper { max-width: 95%; }
+        .chat-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+        .input-controls { flex-direction: column; }
+        .input-controls select, .input-controls button { max-width: 100%; width: 100%; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>{{ chat.name }}</h1>
-        <div class="meta">
-            <h2>Personaje: {{ character.name }}</h2>
-            <div class="actions">
-                <a href="{{ url_for('index') }}">Volver</a>
-                <a href="{{ url_for('settings_view') }}">Configuración</a>
-                <a href="{{ url_for('clear_chat', chat_id=chat.id) }}" onclick="return confirm('¿Resetear este chat? Se borrará el historial.')">Resetear Chat</a>
-                <a href="{{ url_for('delete_chat', chat_id=chat.id) }}" onclick="return confirm('¿Borrar este chat?')">Borrar Chat</a>
+<div class="chat-header">
+    <div class="chat-title">
+        <h1>{{ chat.name }}</h1>
+        <p>Conversando con: <strong>{{ character.name }}</strong></p>
+    </div>
+    <div class="chat-meta-actions">
+        <a href="{{ url_for('clear_chat', chat_id=chat.id) }}" onclick="return confirm('¿Resetear este chat? Se vaciará toda la memoria.')">Resetear Memoria</a>
+        <a href="{{ url_for('delete_chat', chat_id=chat.id) }}" class="delete-btn" onclick="return confirm('¿Destruir este chat permanentemente?')">Destruir</a>
+    </div>
+</div>
+
+{% if chat.context_note %}
+<div class="context-note">
+    <strong>[Contexto Fijo]:</strong> {{ chat.context_note }}
+</div>
+{% endif %}
+
+<div class="chat-box" id="chat-box">
+    {% if messages %}
+        {% for msg in messages %}
+        <div class="message-wrapper {{ msg.role }}">
+            <div class="message-bubble {% if msg.format == 'action' %}format-action{% elif msg.format == 'whisper' %}format-whisper{% endif %}">
+                {% if msg.format == 'action' %}
+                    *{{ msg.content }}*
+                {% elif msg.format == 'whisper' %}
+                    _{{ msg.content }}_
+                {% else %}
+                    {{ msg.content | replace('\n', '<br>') | safe }}
+                {% endif %}
+            </div>
+            <div class="message-meta">
+                <span>{{ 'Tú' if msg.role == 'user' else character.name }}</span>
+                <a href="{{ url_for('edit_message', chat_id=chat.id, msg_index=loop.index0) }}">Editar</a>
+                <a href="{{ url_for('delete_message', chat_id=chat.id, msg_index=loop.index0) }}" class="delete-btn" onclick="return confirm('¿Ocultar este mensaje del hilo?')">Eliminar</a>
             </div>
         </div>
-        {% if chat.context_note %}
-        <div class="note" style="margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid #C5A059; border-radius: 8px;">
-            <strong>Nota de contexto:</strong> {{ chat.context_note }}
+        {% endfor %}
+    {% else %}
+        <div style="margin: auto; color: var(--text-muted); text-align: center;">
+            El vacío escucha. <br>Escribe tu primer mensaje para invocar a {{ character.name }}.
         </div>
-        {% endif %}
-        <div class="messages">
-            {% if messages %}
-                {% for msg in messages %}
-                <div class="message {{ msg.role }} {% if msg.format == 'action' %}action{% elif msg.format == 'whisper' %}whisper{% endif %}">
-                    <strong>{{ 'Tú' if msg.role == 'user' else character.name }}:</strong>
-                    {% if msg.format == 'action' %}
-                        *{{ msg.content }}*
-                    {% elif msg.format == 'whisper' %}
-                        _{{ msg.content }}_
-                    {% else %}
-                        {{ msg.content }}
-                    {% endif %}
-                    <span class="message-controls">
-                        <a href="{{ url_for('edit_message', chat_id=chat.id, msg_index=loop.index0) }}">Editar</a>
-                        <a href="{{ url_for('delete_message', chat_id=chat.id, msg_index=loop.index0) }}" class="delete-btn" onclick="return confirm('¿Borrar este mensaje?')">Borrar</a>
-                    </span>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="message ai">Este es el inicio del chat. Escribe algo para comenzar.</div>
-            {% endif %}
+    {% endif %}
+</div>
+
+<div class="input-area">
+    <form action="{{ url_for('send_message', chat_id=chat.id) }}" method="POST" onsubmit="document.getElementById('typing').style.display='block';">
+        <textarea name="message" id="message" rows="3" placeholder="Transmite tus pensamientos..." required autofocus></textarea>
+        
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+            Tips: Usa <strong>*texto*</strong> para realizar acciones y <strong>_texto_</strong> para susurros inmersivos.
         </div>
-        <form action="{{ url_for('send_message', chat_id=chat.id) }}" method="POST">
-            <label for="message">Mensaje:</label>
-            <textarea name="message" id="message" placeholder="Escribe tu mensaje aquí..."></textarea>
-            <label for="message_format">Formato de envío:</label>
-            <select name="message_format" id="message_format">
-                <option value="normal">Normal</option>
-                <option value="action">*Acción*</option>
-                <option value="whisper">_Susurro_</option>
+        
+        <div class="input-controls">
+            <select name="message_format" id="message_format" title="Formato del Mensaje">
+                <option value="normal">Diálogo Normal</option>
+                <option value="action">* Acción *</option>
+                <option value="whisper">_ Susurro _</option>
             </select>
-            <p style="font-size: 0.9em; color: #fff;">Usa <strong>*texto*</strong> para acciones y <strong>_texto_</strong> para susurros; el modelo los reconocerá.</p>
-            <button type="submit">Enviar</button>
-        </form>
+            <button type="submit">Enviar Mensaje</button>
+        </div>
+        <div id="typing" class="typing-indicator">{{ character.name }} está pensando... (La inferencia puede tardar unos segundos)</div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-scroll al fondo del chat al cargar
+    var chatBox = document.getElementById("chat-box");
+    chatBox.scrollTop = chatBox.scrollHeight;
+    
+    // Ctrl+Enter para enviar
+    document.getElementById("message").addEventListener("keydown", function(e) {
+        if (e.ctrlKey && e.key === "Enter") {
+            e.preventDefault();
+            this.form.submit();
+        }
+    });
+</script>
 {% endblock %}
