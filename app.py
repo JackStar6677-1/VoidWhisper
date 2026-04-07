@@ -527,7 +527,8 @@ def send_message(chat_id):
     
     messages.append({'role': 'user', 'content': user_input, 'format': message_format})
 
-    user_info = json.loads(current_user.info)
+    operator = User.query.first()
+    user_info = json.loads(operator.info)
     info_lines = [f"{key}: {value}" for key, value in user_info.items()]
     user_info_text = '\n'.join(info_lines)
     history_lines = []
