@@ -13,7 +13,7 @@ try:
     AIRLLM_AVAILABLE = True
 except ImportError:
     AIRLLM_AVAILABLE = False
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Ensure sentencepiece is imported for tokenizer support
 try:
@@ -73,7 +73,7 @@ class AuthUser(UserMixin, db.Model):
     reset_expires = db.Column(db.DateTime, nullable=True)
 
 DEFAULT_SETTINGS = {
-    'model_name': 'TheBloke/Mistral-7B-Instruct-v0.1-GGUF',  # Modelo cuantizado que cabe en 2GB
+    'model_name': 'teknium/OpenHermes-2.5-Mistral-7B',  # Modelo compatible con Transformers y 4-bit
     'use_airllm': 'false',
     'use_quantization': '4bit',  # Opciones: None, '4bit', '8bit' - recomendado '4bit' para MX450
     'temperature': '0.8',
@@ -92,7 +92,7 @@ Si el usuario pide detalles, ofrécelos con concreción, manteniendo la informac
 
 @login_manager.user_loader
 def load_user(user_id):
-    return AuthUser.query.get(int(user_id))
+    return db.session.get(AuthUser, int(user_id))
 
 def get_setting(key, default=None):
     setting = Setting.query.filter_by(key=key).first()
@@ -110,8 +110,10 @@ def set_setting(key, value):
 
 
 def get_config():
+    model_name = get_setting('model_name', DEFAULT_SETTINGS['model_name'])
+    model_name = sanitize_model_name(model_name)
     return {
-        'model_name': get_setting('model_name', DEFAULT_SETTINGS['model_name']),
+        'model_name': model_name,
         'use_quantization': get_setting('use_quantization', DEFAULT_SETTINGS['use_quantization']),
         'temperature': float(get_setting('temperature', DEFAULT_SETTINGS['temperature'])),
         'top_p': float(get_setting('top_p', DEFAULT_SETTINGS['top_p'])),
@@ -120,47 +122,60 @@ def get_config():
     }
 
 
+def is_gguf_reference(model_name):
+    if not isinstance(model_name, str):
+        return False
+    lower = model_name.lower()
+    return lower.endswith('.gguf') or 'gguf' in lower
+
+
+def sanitize_model_name(model_name):
+    if not isinstance(model_name, str):
+        return DEFAULT_SETTINGS['model_name']
+    if is_gguf_reference(model_name):
+        return DEFAULT_SETTINGS['model_name']
+    return model_name
+
+
 def load_model(model_name, use_quantization=None):
     global tokenizer, model, current_model_name
     if current_model_name == model_name and 'model' in globals() and 'tokenizer' in globals() and model is not None and tokenizer is not None:
         return
     
+    if is_gguf_reference(model_name):
+        raise OSError(
+            'Los repositorios GGUF no son compatibles con Transformers. ' 
+            'Usa un modelo compatible con Transformers como "mistralai/Mistral-7B-Instruct-v0.1" ' 
+            'o instala "llama-cpp-python"/"llama.cpp" para cargar archivos GGUF locales.'
+        )
+
     print(f'Cargando modelo {model_name}...')
     
-    # Estrategia 1: Intentar cargar tokenizador del modelo base
-    # (Inspirado en text-generation-webui)
-    tokenizer_model = 'mistralai/Mistral-7B-Instruct-v0.1'
+    tokenizer_model = model_name
     try:
         print(f'Intentando cargar tokenizador de {tokenizer_model}...')
         tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_model, 
-            use_fast=False, 
+            tokenizer_model,
+            use_fast=False,
             trust_remote_code=True
         )
         print('✓ Tokenizador cargado con use_fast=False')
     except Exception as e:
-        print(f'Error: {e}')
+        print(f'Falló tokenizador con use_fast=False: {e}')
         print('Intentando cargar con use_fast=True...')
         try:
             tokenizer = AutoTokenizer.from_pretrained(
-                tokenizer_model, 
+                tokenizer_model,
                 use_fast=True,
                 trust_remote_code=True
             )
             print('✓ Tokenizador cargado con use_fast=True')
         except Exception as e2:
-            print(f'Error alternativo: {e2}')
-            print('Intentando cargar tokenizador del modelo GGUF directamente...')
-            try:
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_name,
-                    use_fast=False,
-                    trust_remote_code=True
-                )
-                print('✓ Tokenizador del modelo GGUF cargado')
-            except Exception as e3:
-                print(f'Error final: {e3}')
-                raise ValueError(f"No se pudo cargar el tokenizador. Intenta descargar el repositorio del modelo manualmente.")
+            raise OSError(
+                'No se pudo cargar el tokenizador. ' 
+                'Verifica que el modelo exista y tenga un tokenizer compatible, ' 
+                'y que `sentencepiece`/`tiktoken` estén instalados.'
+            ) from e2
     
     # Configuración para VRAM limitada (MX450 con 2GB)
     model_kwargs = {
@@ -177,12 +192,14 @@ def load_model(model_name, use_quantization=None):
                 load_in_4bit=True,
                 bnb_4bit_use_double_quant=True,
                 bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.float16
+                bnb_4bit_compute_dtype=torch.float16,
+                llm_int8_enable_fp32_cpu_offload=True
             )
         else:  # 8bit
             bnb_config = BitsAndBytesConfig(
                 load_in_8bit=True,
                 load_in_8bit_skip_modules=['lm_head'],
+                llm_int8_enable_fp32_cpu_offload=True
             )
         
         model_kwargs['quantization_config'] = bnb_config
@@ -199,13 +216,28 @@ def load_model(model_name, use_quantization=None):
         )
     except Exception as e:
         print(f'Error al cargar modelo: {e}')
+        lowered = str(e).lower()
+        if 'pytorch_model.bin' in lowered or 'model.safetensors' in lowered or is_gguf_reference(model_name):
+            raise OSError(
+                'No se encontró un checkpoint compatible. ' 
+                'Este error ocurre porque el modelo GGUF no puede cargarse con Transformers. ' 
+                'Cambia a un modelo compatible con Transformers o usa un cargador GGUF.'
+            )
+        if 'bitsandbytes' in lowered or 'bnb' in lowered:
+            raise OSError(
+                'La quantización falló al cargar el modelo. ' 
+                'Asegúrate de que `bitsandbytes` esté instalado y sea compatible con tu entorno.'
+            )
         # Fallback: cargar sin quantización
-        print('Intentando cargar sin quantización...')
-        model_kwargs.pop('quantization_config', None)
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            **model_kwargs
-        )
+        if 'quantization_config' in model_kwargs:
+            print('Intentando cargar sin cuantización...')
+            model_kwargs.pop('quantization_config', None)
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                **model_kwargs
+            )
+        else:
+            raise
     
     current_model_name = model_name
     print(f"✅ Modelo '{model_name}' cargado correctamente. Métodos habilitados: Sin censura")
@@ -217,7 +249,10 @@ with app.app_context():
     if 'chat' in inspector.get_table_names():
         columns = [column['name'] for column in inspector.get_columns('chat')]
         if 'context_note' not in columns:
-            db.engine.execute('ALTER TABLE chat ADD COLUMN context_note TEXT DEFAULT ""')
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                conn.execute(text('ALTER TABLE chat ADD COLUMN context_note TEXT DEFAULT ""'))
+                conn.commit()
 
     if not AuthUser.query.filter_by(username='admin').first():
         hashed_password = generate_password_hash('admin123')
@@ -588,7 +623,11 @@ def duplicate_character(char_id):
 def settings_view():
     user = User.query.first()
     if request.method == 'POST':
-        set_setting('model_name', request.form['model_name'])
+        requested_model = request.form['model_name']
+        if is_gguf_reference(requested_model):
+            flash('Modelo GGUF no soportado. Se restauró el modelo a un valor compatible con Transformers.')
+            requested_model = DEFAULT_SETTINGS['model_name']
+        set_setting('model_name', requested_model)
         set_setting('temperature', request.form['temperature'])
         set_setting('top_p', request.form['top_p'])
         set_setting('max_length', request.form['max_length'])
@@ -602,7 +641,7 @@ def settings_view():
         })
         db.session.commit()
 
-        load_model(request.form['model_name'])
+        load_model(requested_model)
         return redirect(url_for('settings_view'))
 
     config = get_config()

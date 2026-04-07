@@ -5,24 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - VoidWhisper</title>
     <style>
-        body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #4B0082, #FFD700); color: #FFD700; margin: 0; padding: 20px; min-height: 100vh; }
-        .container { max-width: 1000px; margin: auto; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 10px; box-shadow: 0 0 20px #FFD700; }
-        h1, h2 { text-align: center; color: #FFD700; text-shadow: 0 0 10px #4B0082; }
+        body { font-family: 'Georgia', serif; background: linear-gradient(135deg, #120A21, #251E11); color: #C5A059; margin: 0; padding: 20px; min-height: 100vh; }
+        .container { max-width: 1000px; margin: auto; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(197, 160, 89, 0.15); }
+        h1, h2 { text-align: center; color: #C5A059; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
         .meta { text-align: center; margin-bottom: 20px; }
-        .messages { background: #2c0934; padding: 20px; border-radius: 10px; min-height: 300px; max-height: 500px; overflow-y: auto; border: 1px solid #FFD700; }
+        .messages { background: #2c0934; padding: 20px; border-radius: 10px; min-height: 300px; max-height: 500px; overflow-y: auto; border: 1px solid #C5A059; }
         .message { margin-bottom: 15px; padding: 10px; border-radius: 8px; }
         .message.user { color: #fff; background: rgba(255,255,255,0.05); }
         .message.ai { color: #d4af37; background: rgba(255,215,0,0.08); }
-        .message.action { font-style: italic; border: 1px dashed #FFD700; }
+        .message.action { font-style: italic; border: 1px dashed #C5A059; }
         .message.whisper { opacity: 0.9; color: #c0c0c0; }
         .message-controls { display: inline-flex; gap: 10px; margin-left: 10px; font-size: 0.9em; }
-        .message-controls a { color: #FFD700; }
+        .message-controls a { color: #C5A059; }
         .message-controls a.delete-btn { color: #fff; }
         form { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        textarea { padding: 10px; border: 2px solid #FFD700; border-radius: 5px; background: #4B0082; color: #FFD700; height: 120px; }
-        button { padding: 12px; background: #FFD700; color: #4B0082; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #FFA500; }
-        a { color: #FFD700; text-decoration: none; }
+        textarea { padding: 10px; border: 2px solid #C5A059; border-radius: 5px; background: #1A0F2E; color: #C5A059; height: 120px; }
+        button { padding: 12px; background: #C5A059; color: #1A0F2E; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #A88544; }
+        a { color: #C5A059; text-decoration: none; }
         a:hover { text-decoration: underline; }
         .actions { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 
@@ -53,7 +53,7 @@
             </div>
         </div>
         {% if chat.context_note %}
-        <div class="note" style="margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid #FFD700; border-radius: 8px;">
+        <div class="note" style="margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid #C5A059; border-radius: 8px;">
             <strong>Nota de contexto:</strong> {{ chat.context_note }}
         </div>
         {% endif %}

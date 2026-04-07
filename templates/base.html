@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VoidWhisper{% endblock %}</title>
+    <style>
+        /* Base y Variables */
+        :root {
+            --bg-color: #0b0614;
+            --gradient-start: #120A21;
+            --gradient-end: #251E11;
+            --container-bg: rgba(0,0,0,0.85);
+            --primary-purple: #1A0F2E;
+            --accent-gold: #C5A059;
+            --accent-hover: #A88544;
+            --text-color: #C5A059;
+            --danger: #DC3545;
+            --danger-hover: #C82333;
+            --navbar-bg: #1A0F2E;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar Hotbar */
+        .navbar {
+            background-color: var(--navbar-bg);
+            border-bottom: 2px solid var(--accent-gold);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .navbar-brand {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--accent-gold);
+            text-decoration: none;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .navbar-menu a {
+            color: var(--accent-gold);
+            text-decoration: none;
+            font-weight: normal;
+            transition: color 0.2s;
+        }
+
+        .navbar-menu a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        /* Contenedor Global */
+        .main-content {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--container-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(197, 160, 89, 0.15);
+        }
+
+        .container-sm {
+            max-width: 400px; /* Para login/register */
+            align-self: center;
+        }
+
+        /* Tipografía */
+        h1, h2, h3 {
+            color: var(--accent-gold);
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            margin-top: 0;
+        }
+        h1 { text-align: center; }
+
+        /* Formularios y Botones */
+        form { display: flex; flex-direction: column; gap: 10px; }
+        label { font-weight: bold; }
+        input, select, textarea {
+            padding: 10px; border: 2px solid var(--accent-gold);
+            border-radius: 5px; background: var(--primary-purple); color: var(--accent-gold);
+        }
+        button, .btn {
+            padding: 10px 15px; background: var(--accent-gold); color: var(--primary-purple);
+            border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
+            text-align: center; text-decoration: none; display: inline-block;
+        }
+        button:hover, .btn:hover { background: var(--accent-hover); text-decoration: none; }
+        .delete-btn { background: var(--danger); color: white; border: none; }
+        .delete-btn:hover { background: var(--danger-hover); color: white; }
+        a { color: var(--accent-gold); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Grillas genéricas (para chats y personajes) */
+        .grid-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        .grid-item { background: var(--primary-purple); padding: 10px; border-radius: 5px; border: 1px solid var(--accent-gold); flex: 1 1 200px; }
+
+        /* Alertas / Flash */
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid var(--danger);
+            color: #ffb3b3;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .navbar { flex-direction: column; gap: 10px; }
+            .navbar-menu { flex-wrap: wrap; justify-content: center; }
+            .main-content { padding: 10px; }
+            .container { padding: 15px; }
+            .grid-list { flex-direction: column; }
+            .grid-item { flex: 1 1 100%; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="navbar-brand">VoidWhisper</a>
+        <div class="navbar-menu">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('index') }}">Inicio</a>
+                <a href="{{ url_for('settings_view') }}">Configuración</a>
+                <a href="{{ url_for('logout') }}">Salir</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Inciar Sesión</a>
+                <a href="{{ url_for('register') }}">Registrarse</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container {% block container_class %}{% endblock %}">
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="flash">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+            
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+</body>
+</html>
