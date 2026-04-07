@@ -2,254 +2,130 @@
 
 {% block extra_css %}
 <style>
-    /* Premium Dashboard Grid Override */
-    .dashboard-header {
-        text-align: center;
-        margin-bottom: 2.5rem;
-    }
-
-    .dashboard-header p {
-        color: var(--text-muted);
-        font-size: 1.1rem;
-        margin-top: -0.5rem;
-    }
-
-    .section-glass {
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--border-radius-lg);
-        padding: 2rem;
-        margin-bottom: 2.5rem;
-        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-    }
-
-    .section-title {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid var(--glass-border);
-        padding-bottom: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .section-title h2 {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
-    }
-
-    /* Cards Layout */
-    .cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .premium-card {
-        background: var(--primary);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--border-radius-md);
-        padding: 1.5rem;
+    .welcome-container {
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        transition: var(--transition);
-        position: relative;
-        overflow: hidden;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        text-align: center;
+        padding: 2rem;
+        background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><path d="M10 10 L90 90 M90 10 L10 90" stroke="rgba(197,160,89,0.05)" stroke-width="2"/></svg>');
     }
-
-    .premium-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 4px;
-        background: var(--accent);
-        opacity: 0.5;
-        transition: var(--transition);
-    }
-
-    .premium-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.4), 0 0 15px var(--accent-glow);
-    }
-    
-    .premium-card:hover::before {
-        opacity: 1;
-    }
-
-    .card-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-main);
-        margin-bottom: 1rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .card-actions {
+    .welcome-logo {
+        width: 120px;
+        height: 120px;
+        background: var(--bg-hover);
+        border: 2px solid var(--accent);
+        border-radius: 50%;
         display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
-        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 0 40px var(--accent-glow);
+    }
+    .welcome-title {
+        font-size: 2rem;
+        font-weight: 300;
+        margin-bottom: 1rem;
+        color: var(--text-main);
+    }
+    .welcome-subtitle {
+        color: var(--text-muted);
+        font-size: 1rem;
+        max-width: 400px;
+        margin-bottom: 3rem;
+        line-height: 1.5;
     }
 
-    .card-actions a, .card-actions button {
-        font-size: 0.85rem;
-        padding: 0.5rem 1rem;
-        flex: 1;
-        text-align: center;
-    }
-    
-    .chat-link {
-        display: block;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--accent);
-        text-align: center;
-        padding: 0.6rem;
-        border-radius: 5px;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        transition: background 0.2s;
-    }
-    .chat-link:hover {
-        background: var(--accent);
-        color: var(--bg-start);
-        text-decoration: none;
-    }
-
-    .creation-form {
+    .tools-grid {
         display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.2rem;
-        background: rgba(0,0,0,0.2);
-        padding: 1.5rem;
-        border-radius: var(--border-radius-md);
-        border: 1px dashed var(--glass-border);
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        width: 100%;
+        max-width: 800px;
     }
 
-    .creation-form.two-col {
-        grid-template-columns: 1fr 1fr;
+    .tool-card {
+        background: var(--bg-sidebar-header);
+        border: 1px solid var(--border-color);
+        padding: 2rem;
+        border-radius: 12px;
+        text-align: left;
     }
-    .full-width {
-        grid-column: 1 / -1;
-    }
+    .tool-card h3 { color: var(--accent); margin-bottom: 1.5rem; margin-top: 0; font-size: 1.2rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; }
 
     @media (max-width: 768px) {
-        .creation-form.two-col { grid-template-columns: 1fr; }
+        .tools-grid { grid-template-columns: 1fr; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-    <h1>VoidWhisper - Chat Uncensored</h1>
-    <p>Habla sin límites. Todo local y privado.</p>
-</div>
+<div class="welcome-container">
+    <div class="welcome-logo">🌌</div>
+    <h1 class="welcome-title">VoidWhisper Web</h1>
+    <p class="welcome-subtitle">Haz click en un chat a la izquierda para continuar tu historia, o utiliza las herramientas aquí abajo para crear una nueva interacción.</p>
 
-<!-- CHATS SECTION -->
-<div class="section-glass">
-    <div class="section-title">
-        <h2>Tus Conversaciones</h2>
-    </div>
-    
-    <div class="cards-grid">
-        {% for chat in chats %}
-        <div class="premium-card">
-            <div class="card-title">{{ chat.name }}</div>
-            <a href="{{ url_for('chat_view', chat_id=chat.id) }}" class="chat-link">Entrar al Chat »</a>
-            <div class="card-actions">
-                <a href="{{ url_for('delete_chat', chat_id=chat.id) }}" class="btn delete-btn" style="flex: 1" onclick="return confirm('¿Borrar este chat?')">Eliminar</a>
-            </div>
-        </div>
-        {% else %}
-        <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">
-            Aún no tienes chats activos. Crea uno abajo.
-        </div>
-        {% endfor %}
-    </div>
-
-    <form action="{{ url_for('create_chat') }}" method="POST" class="creation-form two-col">
-        <h3 class="full-width" style="margin-bottom: 0; font-size: 1.2rem;">Crear un nuevo Chat</h3>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <label for="chat_name">Nombre del Chat</label>
-            <input type="text" id="chat_name" name="name" placeholder="Ej: Aventura Sci-Fi" required>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <label for="character">Selecciona Personaje</label>
-            <select name="character_id" required>
-                {% for char in characters %}
-                <option value="{{ char.id }}">{{ char.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="full-width" style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <label for="context_note">Contexto inicial (Opcional)</label>
-            <textarea id="context_note" name="context_note" rows="2" placeholder="Define un escenario, regla o tono antes del primer mensaje..."></textarea>
-        </div>
-        <div class="full-width">
-            <button type="submit" style="width: 100%;">Crear Chat e Iniciar</button>
-        </div>
-    </form>
-</div>
-
-<!-- CHARACTERS SECTION -->
-<div class="section-glass">
-    <div class="section-title">
-        <h2>Personajes</h2>
-    </div>
-    
-    <div class="cards-grid">
-        {% for char in characters %}
-        <div class="premium-card">
-            <div class="card-title">{{ char.name }}</div>
-            <div class="card-actions">
-                <a href="{{ url_for('edit_character', char_id=char.id) }}" class="btn" style="background: rgba(255,255,255,0.1); color: var(--accent);">Editar</a>
-                <a href="{{ url_for('duplicate_character', char_id=char.id) }}" class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-main);">Clonar</a>
-                <a href="{{ url_for('delete_character', char_id=char.id) }}" class="btn delete-btn" onclick="return confirm('¿Borrar este personaje permanentemente?')">Borrar</a>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <form action="{{ url_for('create_character') }}" method="POST" class="creation-form">
-        <h3 style="margin-bottom: 0; font-size: 1.2rem;">Forjar Personaje</h3>
-        
-        <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
-            <div style="flex: 2; min-width: 200px; display: flex; flex-direction: column; gap: 0.5rem;">
-                <label for="base_character">Cargar plantilla desde existente:</label>
-                <select id="base_character" onchange="loadPrompt()">
-                    <option value="">-- Nuevo desde cero --</option>
-                    {% for char in characters %}
+    <div class="tools-grid">
+        <!-- New Chat Form -->
+        <div class="tool-card">
+            <h3>NUEVO CHAT</h3>
+            <form action="{{ url_for('create_chat') }}" method="POST">
+                <label>Nombre del Hilo</label>
+                <input type="text" name="name" placeholder="Ej: Episodio 3" required>
+                
+                <label>Personaje a Invocar</label>
+                <select name="character_id" required>
+                    {% for char in global_characters %}
                     <option value="{{ char.id }}">{{ char.name }}</option>
                     {% endfor %}
                 </select>
-            </div>
-            <button type="button" onclick="editFromBase()" style="flex: 1; background: var(--primary-hover); color: var(--text-main);">Clonar Avanzado</button>
+                
+                <label>Contexto (Opcional)</label>
+                <textarea name="context_note" rows="2" placeholder="Regla inicial..."></textarea>
+                
+                <button type="submit" style="width:100%">Crear e Iniciar Chat</button>
+            </form>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
-            <label for="char_name">Identidad (Nombre)</label>
-            <input type="text" id="char_name" name="name" required placeholder="Ej: Operador IA">
+        <!-- New Character Form -->
+        <div class="tool-card">
+            <h3>FORJAR IDENTIDAD</h3>
+            <form action="{{ url_for('create_character') }}" method="POST">
+                
+                <div style="display:flex; gap: 10px; margin-bottom: 10px;">
+                    <select id="base_character" onchange="loadPrompt()" style="margin-bottom:0;">
+                        <option value="">Base en blanco</option>
+                        {% for char in global_characters %}
+                        <option value="{{ char.id }}">{{ char.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" onclick="editFromBase()" style="white-space: nowrap; padding: 0.8rem;">Clonar</button>
+                </div>
+
+                <label>Nombre Identidad</label>
+                <input type="text" name="name" placeholder="Ej: Saori" required>
+                
+                <label>System Prompt</label>
+                <textarea id="system_prompt" name="system_prompt" rows="3" required placeholder="Límites, personalidad..."></textarea>
+                
+                <button type="submit" style="width:100%">Despertar Personaje</button>
+            </form>
         </div>
-        
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <label for="system_prompt">Prompt del Sistema (System Prompt)</label>
-            <textarea id="system_prompt" name="system_prompt" rows="6" required placeholder="Instrucciones precisas para la IA (personalidad, límites, formatos)..."></textarea>
-        </div>
-        
-        <button type="submit" style="margin-top: 0.5rem;">Dar Vida al Personaje</button>
-    </form>
+    </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
 <script>
     const promptMap = {
-        {% for char in characters %}
+        {% for char in global_characters %}
         "{{ char.id }}": {{ char.system_prompt | tojson | safe }}{% if not loop.last %},{% endif %}
         {% endfor %}
     };
-
     function loadPrompt() {
         const selector = document.getElementById('base_character');
         const promptArea = document.getElementById('system_prompt');
@@ -258,14 +134,13 @@
             promptArea.value = promptMap[selectedId];
         }
     }
-
     function editFromBase() {
         const selector = document.getElementById('base_character');
         const selectedId = selector.value;
         if (selectedId) {
             window.location.href = "{{ url_for('edit_new_character', base_id=0) }}".replace('0', selectedId);
         } else {
-            alert('Selecciona un personaje de la lista para clonarlo.');
+            alert('Selecciona base en el selector para clonar.');
         }
     }
 </script>

@@ -1,13 +1,27 @@
 {% extends "base.html" %}
-{% block container_class %}container-sm{% endblock %}
+
 {% block content %}
-<h1>Login</h1>
+<div class="viewport-center">
+    <div class="card-panel">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2>Iniciar Sesión Operador</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Accede a tu instancia aislada</p>
+        </div>
         
         <form method="POST">
-            <input type="text" name="username" placeholder="Usuario" required>
-            <input type="password" name="password" placeholder="Contraseña" required>
-            <button type="submit">Iniciar Sesión</button>
+            <label for="username">Usuario</label>
+            <input type="text" id="username" name="username" required autofocus>
+            
+            <label for="password">Clave de Seguridad</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit" style="width: 100%; margin-top: 1rem;">Conectar a la Red</button>
         </form>
-        <a href="{{ url_for('register') }}">Registrarse</a>
-        <a href="{{ url_for('forgot_password') }}">Olvidé Contraseña</a>
+
+        <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem;">
+            <a href="{{ url_for('forgot_password') }}" style="color: var(--text-muted); padding-right: 15px; border-right: 1px solid var(--border-color);">Forzar Reset</a>
+            <a href="{{ url_for('register') }}" style="color: var(--accent); padding-left: 15px;">Registrar Instancia</a>
+        </div>
+    </div>
+</div>
 {% endblock %}

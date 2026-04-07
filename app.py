@@ -114,6 +114,14 @@ Si el usuario pide detalles, ofrécelos con concreción, manteniendo la informac
 """
 }
 
+@app.context_processor
+def inject_sidebar_data():
+    if current_user.is_authenticated:
+        chats = Chat.query.order_by(Chat.id.desc()).all()
+        characters = Character.query.order_by(Character.name).all()
+        return dict(global_chats=chats, global_characters=characters)
+    return dict()
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(AuthUser, int(user_id))

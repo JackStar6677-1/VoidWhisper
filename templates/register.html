@@ -1,12 +1,26 @@
 {% extends "base.html" %}
-{% block container_class %}container-sm{% endblock %}
+
 {% block content %}
-<h1>Registro</h1>
+<div class="viewport-center">
+    <div class="card-panel">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2>Crear Identidad Operador</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Registrar a un nuevo usuario</p>
+        </div>
         
         <form method="POST">
-            <input type="text" name="username" placeholder="Usuario" required>
-            <input type="password" name="password" placeholder="Contraseña" required>
-            <button type="submit">Registrar</button>
+            <label for="username">Nuevo Usuario</label>
+            <input type="text" id="username" name="username" required autofocus>
+            
+            <label for="password">Clave Maestra</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit" style="width: 100%; margin-top: 1rem;">Registrar Operador</button>
         </form>
-        <a href="{{ url_for('login') }}">Iniciar Sesión</a>
+
+        <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem;">
+            <a href="{{ url_for('login') }}" style="color: var(--text-muted);">← Volver a Conexión</a>
+        </div>
+    </div>
+</div>
 {% endblock %}
