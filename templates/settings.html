@@ -57,6 +57,24 @@
                             <input type="number" id="max_length" name="max_length" value="{{ config.max_length }}" required>
                         </div>
                     </div>
+
+                    <div style="display:flex; gap: 10px; margin-top: 5px;">
+                        <div style="flex:1">
+                            <label for="use_quantization">Cuantización (Memoria)</label>
+                            <select id="use_quantization" name="use_quantization" style="margin-bottom:0;">
+                                <option value="false" {% if config.use_quantization == 'false' %}selected{% endif %}>No (Máxima calidad, 16GB VRAM)</option>
+                                <option value="8bit" {% if config.use_quantization == '8bit' %}selected{% endif %}>Baja (8-Bit, ~8GB VRAM)</option>
+                                <option value="4bit" {% if config.use_quantization == '4bit' %}selected{% endif %}>Extrema (4-Bit, ~4GB VRAM)</option>
+                            </select>
+                        </div>
+                        <div style="flex:1">
+                            <label for="use_airllm">Motor AirLLM (Block-layer infer.)</label>
+                            <select id="use_airllm" name="use_airllm" style="margin-bottom:0;">
+                                <option value="false" {% if config.use_airllm == 'false' %}selected{% endif %}>Apagado (Transformers)</option>
+                                <option value="true" {% if config.use_airllm == 'true' %}selected{% endif %}>Activado (Bypass Limitación Física)</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="settings-section">

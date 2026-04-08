@@ -322,22 +322,62 @@
     message.addEventListener("keydown", function(e) {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            document.getElementById("chat-form").submit();
+            document.getElementById("chat-form").dispatchEvent(new Event('submit'));
         }
     });
 
+    let pollingInterval = null;
+
     // Polling mechanism when form is submitted
-    document.getElementById("chat-form").addEventListener("submit", function() {
+    document.getElementById("chat-form").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        
         typing.style.display = 'flex';
         terminalWrapper.style.display = 'block';
         sendBtn.disabled = true;
         sendBtn.style.opacity = '0.5';
+        
+        const msgText = message.value;
+        const msgFormat = document.querySelector('select[name="format"]').value;
+        message.value = ''; // clean input
         message.readOnly = true;
 
         // Start pulling logs immediately
         fetchLogs();
-        setInterval(fetchLogs, 1000);
+        pollingInterval = setInterval(fetchLogs, 1000);
+
+        try {
+            // Asynchronous dispatch
+            await fetch("{{ url_for('send_message', chat_id=chat.id) }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ message: msgText, format: msgFormat })
+            });
+            
+            // Iniciar escucha del estatus
+            checkStatus();
+        } catch (err) {
+            console.error("Fetch dispath failed: ", err);
+        }
     });
+
+    async function checkStatus() {
+        try {
+            const resp = await fetch("/api/chat_status/{{ chat.id }}");
+            const data = await resp.json();
+            if (data.status === 'done') {
+                window.location.reload(); // Success!
+            } else if (data.status === 'error') {
+                alert("Ocurrió un error catastrófico en la VRAM/Thread. Revisa la terminal local.");
+                window.location.reload();
+            } else {
+                // Sigue en 'processing', esperar y chequear de nuevo
+                setTimeout(checkStatus, 2000); 
+            }
+        } catch (e) {
+            setTimeout(checkStatus, 2000);
+        }
+    }
 
     async function fetchLogs() {
         try {

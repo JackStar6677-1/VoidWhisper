@@ -46,6 +46,7 @@ except ImportError:
     pass
 
 current_model_name = None
+GENERATION_TASKS = {}
 
 import os
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -150,13 +151,13 @@ def get_config():
     model_name = sanitize_model_name(model_name)
     return {
         'model_name': model_name,
+        'use_airllm': get_setting('use_airllm', DEFAULT_SETTINGS['use_airllm']),
         'use_quantization': get_setting('use_quantization', DEFAULT_SETTINGS['use_quantization']),
         'temperature': float(get_setting('temperature', DEFAULT_SETTINGS['temperature'])),
         'top_p': float(get_setting('top_p', DEFAULT_SETTINGS['top_p'])),
         'max_length': int(get_setting('max_length', DEFAULT_SETTINGS['max_length'])),
         'no_limit_prefix': get_setting('no_limit_prefix', DEFAULT_SETTINGS['no_limit_prefix']),
     }
-
 
 def is_gguf_reference(model_name):
     if not isinstance(model_name, str):
@@ -173,9 +174,15 @@ def sanitize_model_name(model_name):
     return model_name
 
 
-def load_model(model_name, use_quantization=None):
+def load_model(config):
     global tokenizer, model, current_model_name
+    model_name = config['model_name']
+    use_quantization = config.get('use_quantization')
+    use_airllm = config.get('use_airllm', 'false').lower() == 'true'
+
     if current_model_name == model_name and 'model' in globals() and 'tokenizer' in globals() and model is not None and tokenizer is not None:
+        # Ya está cargado el correcto, pero verifiquemos si cambió la config estructural
+        # Ignoramos cambios en vivo puros para no recargar sin botón de reinicio.
         return
     
     if is_gguf_reference(model_name):
@@ -213,6 +220,21 @@ def load_model(model_name, use_quantization=None):
                 'y que `sentencepiece`/`tiktoken` estén instalados.'
             ) from e2
     
+    # === RAMA AIRLLM ===
+    use_airllm = config.get('use_airllm', 'false').lower() == 'true'
+    
+    if use_airllm and getattr(sys.modules[__name__], 'AIRLLM_AVAILABLE', False):
+        print(f'Inicializando vía AirLLM con compresión {use_quantization}...')
+        comp = '4bit' if use_quantization == '4bit' else ('8bit' if use_quantization == '8bit' else None)
+        try:
+            model = AirAutoModel.from_pretrained(model_name, compression=comp)
+            current_model_name = model_name
+            print('✓ Modelo AirLLM cargado exitosamente.')
+            return
+        except Exception as e:
+            print(f"Error cargando AirLLM: {e}. Fallback a normal...")
+
+    # === RAMA NORMAL TRANSFORMERS ===
     # Configuración para VRAM limitada (MX450 con 2GB)
     model_kwargs = {
         'device_map': 'auto',
@@ -250,6 +272,7 @@ def load_model(model_name, use_quantization=None):
             model_name,
             **model_kwargs
         )
+        current_model_name = model_name
     except Exception as e:
         print(f'Error al cargar modelo: {e}')
         lowered = str(e).lower()
@@ -543,68 +566,130 @@ def delete_chat(chat_id):
 @app.route('/chat/<int:chat_id>')
 @login_required
 def chat_view(chat_id):
-    chat = Chat.query.get_or_404(chat_id)
-    character = Character.query.get(chat.character_id)
+    chat = db.session.get(Chat, chat_id)
+    if not chat:
+        from flask import abort
+        abort(404)
+    character = db.session.get(Character, chat.character_id)
     messages = json.loads(chat.messages)
     return render_template('chat.html', chat=chat, character=character, messages=messages)
+
+def background_generate(app, chat_id, user_input, message_format):
+    with app.app_context():
+        try:
+            global tokenizer, model
+            config = get_config()
+            load_model(config)
+            chat = db.session.get(Chat, chat_id)
+            character = db.session.get(Character, chat.character_id)
+            messages = json.loads(chat.messages)
+            
+            operator = User.query.first()
+            user_info = json.loads(operator.info)
+            info_lines = [f"{key}: {value}" for key, value in user_info.items()]
+            user_info_text = '\n'.join(info_lines)
+            history_lines = []
+            for msg in messages:
+                speaker = 'Tú' if msg['role'] == 'user' else character.name
+                content = msg['content']
+                if msg.get('format') == 'action':
+                    history_lines.append(f"*{speaker} {content}*")
+                elif msg.get('format') == 'whisper':
+                    history_lines.append(f"_{speaker} susurra: {content}_")
+                else:
+                    history_lines.append(f"{speaker}: {content}")
+
+            if chat.context_note:
+                history_lines.insert(0, f"Contexto del chat: {chat.context_note}")
+
+            history_text = '\n'.join(history_lines)
+            full_prompt = (
+                f"{config['no_limit_prefix']}\n{character.system_prompt}\n\n"
+                f"Perfil del Usuario:\n{user_info_text}\n\n"
+                f"{history_text}\n{character.name}:"
+            )
+
+            use_airllm = getattr(model, '__class__', None) and 'AirLLM' in model.__class__.__name__ or 'airllm' in str(type(model)).lower()
+
+            if use_airllm:
+                print(">> Inferencia delegada a motor AirLLM...")
+                input_tokens = tokenizer(full_prompt, return_tensors='pt', return_attention_mask=False, truncation=True, padding=False)
+                outputs = model.generate(
+                    input_tokens['input_ids'].cuda(),
+                    max_new_tokens=config['max_length'],
+                    temperature=config['temperature'],
+                    top_p=config['top_p'],
+                    use_cache=True,
+                    return_dict_in_generate=True
+                )
+                response = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+            else:
+                # Standard transformers backend
+                device = getattr(model, 'device', 'cpu')
+                inputs = tokenizer(full_prompt, return_tensors='pt').to(device)
+                outputs = model.generate(
+                    **inputs,
+                    max_new_tokens=config['max_length'], # Mejor práctica moderna en vez de max_length que sumaría inputs
+                    temperature=config['temperature'],
+                    top_p=config['top_p'],
+                    do_sample=True,
+                    pad_token_id=tokenizer.eos_token_id
+                )
+                response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+            ai_response = response.split(f"{character.name}:")[-1].strip()
+
+            messages.append({'role': 'ai', 'content': ai_response, 'format': 'normal'})
+            chat.messages = json.dumps(messages)
+            db.session.commit()
+            
+            GENERATION_TASKS[chat_id] = {'status': 'done'}
+            print(">> Background thread finalizado con éxito.")
+            
+        except Exception as e:
+            print(f">> Error en thread de generacion: {e}")
+            GENERATION_TASKS[chat_id] = {'status': 'error'}
+
 
 @app.route('/chat/<int:chat_id>/send', methods=['POST'])
 @login_required
 def send_message(chat_id):
-    global tokenizer, model
-    config = get_config()
-    load_model(config['model_name'], config['use_quantization'])
-    chat = Chat.query.get_or_404(chat_id)
-    character = Character.query.get(chat.character_id)
+    chat = db.session.get(Chat, chat_id)
     messages = json.loads(chat.messages)
     
-    user_input = request.form['message']
-    message_format = request.form.get('format', 'normal')
+    # Soporta tanto peticiones JSON como Formurarios nativos
+    user_input = request.json.get('message') if request.is_json else request.form.get('message')
+    message_format = request.json.get('format', 'normal') if request.is_json else request.form.get('format', 'normal')
     
+    # 1. Grabar instantáneamente el mensaje del usuario
     messages.append({'role': 'user', 'content': user_input, 'format': message_format})
-
-    operator = User.query.first()
-    user_info = json.loads(operator.info)
-    info_lines = [f"{key}: {value}" for key, value in user_info.items()]
-    user_info_text = '\n'.join(info_lines)
-    history_lines = []
-    for msg in messages:
-        speaker = 'Tú' if msg['role'] == 'user' else character.name
-        content = msg['content']
-        if msg.get('format') == 'action':
-            history_lines.append(f"*{speaker} {content}*")
-        elif msg.get('format') == 'whisper':
-            history_lines.append(f"_{speaker} susurra: {content}_")
-        else:
-            history_lines.append(f"{speaker}: {content}")
-
-    if chat.context_note:
-        history_lines.insert(0, f"Contexto del chat: {chat.context_note}")
-
-    history_text = '\n'.join(history_lines)
-    full_prompt = (
-        f"{config['no_limit_prefix']}\n{character.system_prompt}\n\n"
-        f"Perfil del Usuario:\n{user_info_text}\n\n"
-        f"{history_text}\nUsuario: {user_input}\n{character.name}:"
-    )
-
-    inputs = tokenizer(full_prompt, return_tensors='pt').to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_length=inputs['input_ids'].shape[1] + config['max_length'],
-        temperature=config['temperature'],
-        top_p=config['top_p'],
-        do_sample=True,
-        pad_token_id=tokenizer.eos_token_id
-    )
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    ai_response = response.split(f"{character.name}:")[-1].strip()
-
-    messages.append({'role': 'ai', 'content': ai_response, 'format': 'normal'})
     chat.messages = json.dumps(messages)
     db.session.commit()
 
+    # 2. Señalizar tarea en curso e instanciar hilo Python
+    GENERATION_TASKS[chat_id] = {'status': 'processing'}
+    from flask import current_app
+    app_instance = current_app._get_current_object()
+    
+    thread = threading.Thread(
+        target=background_generate, 
+        args=(app_instance, chat_id, user_input, message_format)
+    )
+    thread.start()
+
+    # 3. Retornar liberación de red inmediata
+    if request.is_json:
+        return jsonify({'status': 'processing'})
     return redirect(url_for('chat_view', chat_id=chat_id))
+
+@app.route('/api/chat_status/<int:chat_id>')
+@login_required
+def chat_status(chat_id):
+    state = GENERATION_TASKS.get(chat_id, {'status': 'done'})
+    # Auto-limpiar cuando el frontend descubre que ya acabó
+    if state.get('status') == 'done':
+        GENERATION_TASKS.pop(chat_id, None)
+    return jsonify(state)
 
 @app.route('/delete_message/<int:chat_id>/<int:msg_index>')
 @login_required
