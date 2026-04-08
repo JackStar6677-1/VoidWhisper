@@ -579,7 +579,21 @@ def background_generate(app, chat_id, user_input, message_format):
         try:
             global tokenizer, model
             config = get_config()
+            
+            print("\n\n" + "="*60)
+            print("[ASYNC] El hilo maestro ha despertado.")
+            print(f"[ASYNC] Extrayendo la mente: {config['model_name']}...")
+            print("[ASYNC] ► ADVERTENCIA: La carga puede durar 7+ minutos por VRAM.")
+            print("[ASYNC] ► NOTA: Mantente hidratado, la PC esta trabajando en fondo.")
+            print("="*60 + "\n")
+            sys.stdout.flush()
+            
             load_model(config)
+            
+            print("\n[ASYNC] ✓ Model Weights ensamblados en VRAM con exito!")
+            print("[ASYNC] Iniciando decodificacion de tokens...\n")
+            sys.stdout.flush()
+            
             chat = db.session.get(Chat, chat_id)
             character = db.session.get(Character, chat.character_id)
             messages = json.loads(chat.messages)
@@ -611,6 +625,9 @@ def background_generate(app, chat_id, user_input, message_format):
 
             use_airllm = getattr(model, '__class__', None) and 'AirLLM' in model.__class__.__name__ or 'airllm' in str(type(model)).lower()
 
+            from transformers import TextStreamer
+            streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+
             if use_airllm:
                 print(">> Inferencia delegada a motor AirLLM...")
                 input_tokens = tokenizer(full_prompt, return_tensors='pt', return_attention_mask=False, truncation=True, padding=False)
@@ -620,7 +637,8 @@ def background_generate(app, chat_id, user_input, message_format):
                     temperature=config['temperature'],
                     top_p=config['top_p'],
                     use_cache=True,
-                    return_dict_in_generate=True
+                    return_dict_in_generate=True,
+                    streamer=streamer
                 )
                 response = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
             else:
@@ -629,11 +647,12 @@ def background_generate(app, chat_id, user_input, message_format):
                 inputs = tokenizer(full_prompt, return_tensors='pt').to(device)
                 outputs = model.generate(
                     **inputs,
-                    max_new_tokens=config['max_length'], # Mejor práctica moderna en vez de max_length que sumaría inputs
+                    max_new_tokens=config['max_length'], # Mejor práctica moderna
                     temperature=config['temperature'],
                     top_p=config['top_p'],
                     do_sample=True,
-                    pad_token_id=tokenizer.eos_token_id
+                    pad_token_id=tokenizer.eos_token_id,
+                    streamer=streamer
                 )
                 response = tokenizer.decode(outputs[0], skip_special_tokens=True)
 

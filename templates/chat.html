@@ -338,9 +338,26 @@
         sendBtn.style.opacity = '0.5';
         
         const msgText = message.value;
-        const msgFormat = document.querySelector('select[name="format"]').value;
+        const msgFormat = document.querySelector('select[name="message_format"]').value;
         message.value = ''; // clean input
         message.readOnly = true;
+
+        // Inyectar el mensaje del usuario artificialmente al HTML para feedback inmediato
+        const tempBubble = document.createElement('div');
+        tempBubble.className = 'message-wrapper user';
+        let formattedText = msgText.replace(/\n/g, '<br>');
+        if (msgFormat === 'action') formattedText = '*' + msgText + '*';
+        if (msgFormat === 'whisper') formattedText = '_' + msgText + '_';
+        tempBubble.innerHTML = `
+            <div class="message-bubble ${msgFormat === 'action' ? 'format-action' : (msgFormat === 'whisper' ? 'format-whisper' : '')}">
+                ${formattedText}
+            </div>
+            <div class="message-meta">
+                <span>Tuviando (Async) | Tú</span>
+            </div>
+        `;
+        chatBox.appendChild(tempBubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
 
         // Start pulling logs immediately
         fetchLogs();
