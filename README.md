@@ -25,8 +25,8 @@ Usa `AutoModelForCausalLM` mapeado directamente al dispositivo.
 Si tus restricciones son absolutas (ej. MX450 / 2GB VRAM pura sin swapping suficiente), puedes activar el **Motor AirLLM** desde Configuración.
 - Emplea **paginación en bloques**: Fractura un modelo 7B en tu disco duro (SSD) y carga la inferencia *Capa por Capa* hacia la memoria RAM, eliminando por completo las limitaciones de VRAM. Lentitud esperable a cambio de no crashear con falta de CUDA Memory extrema.
 
-> **Modelo por defecto**: `teknium/OpenHermes-2.5-Mistral-7B`
-> Se descartó `mistralai/Mistral...` para garantizar 0% censura y descarga instantánea.
+> **Modelo por defecto actual**: `DavidAU/Llama-3.2-3B-Instruct-heretic-ablitered-uncensored`
+> Se ha escalado a este modelo arquitectónico de 3B para garantizar una inferencia 100% cruda, rápida e impecable en computadoras de Low-End (2GB a 4GB VRAM).
 
 ---
 
@@ -38,14 +38,18 @@ Si clonas este repositorio en una estación de trabajo potente (por ejemplo una 
 3. **Velocidad Terminal**: A partir del primer golpe, verás tu respuesta decodificarse a velocidades abismales (40 a 70 palabras por segundo) directamente frente a ti en el flujo de la consola o la burbuja.
 
 ### 🎭 Recomendaciones Absolutas: Modelos "Zero-Censorship" & Roleplay
-Si tienes la VRAM (8GB+) para aguantar modelos pesados en puro *Transformers Native*, ve a *Configuración* en VoidWhisper y pega en la celda *Nombre del Modelo* cualquiera de estas bestias de Rol sin límites disponibles hoy en HuggingFace:
+Si tienes la VRAM para aguantar modelos locales, ve a *Configuración* en VoidWhisper y pega en la celda *Nombre del Modelo* cualquiera de estas bestias de Rol sin límites disponibles hoy en HuggingFace:
 
-- **Para 8GB+ VRAM** (Rápido, Altísima Calidad RAW)
+- **Tier 1: Supervivencia (Hasta 2GB VRAM - MX450)**
+  - `DavidAU/Llama-3.2-3B-Instruct-heretic-ablitered-uncensored` *(Recomendado para correr rápido. Abliterado a la perfección)*
+  - `DavidAU/Qwen2.5-1.5B-VibeThinker-heretic-uncensored-abliterated` *(Minúsculo pero muy coherente y frío lógicamente)*
+- **Tier 2: Rendimiento Óptimo (8GB VRAM - RTX 4060)**
   - `cognitivecomputations/dolphin-2.9-llama3-8b` *(Perfección absoluta sin filtros, astuto)*
   - `Sao10K/L3-8B-Stheno-v3.2` *(Centrado un 100% puramente en Roleplay creativo e intenso)*
-- **Para 12GB+ VRAM** (Extensa longitud narrativa)
+- **Tier 3: El Límite de Memoria Oculta (11B a 14B)**
+  - `Naphula/MN-12B-Mag-Mell-R1-Uncensored` *(Merge especializado en roleplay múltiple sin filtros)*
   - `Sao10K/Fimbulvetr-11B-v2` *(Un gigante dormido. Una inmersión brutal de trama)*
-- **Para Monstruos de 24GB+ VRAM** (Inteligencia superior a Chatgpt-4)
+- **Tier Dios: Monstruos de 24GB VRAM**
   - `cognitivecomputations/dolphin-2.9-mixtral-8x7b` *(La obra cumbre de la IA de código abierto)*
 
 ---
