@@ -102,7 +102,7 @@ class AuthUser(UserMixin, db.Model):
     reset_expires = db.Column(db.DateTime, nullable=True)
 
 DEFAULT_SETTINGS = {
-    'model_name': 'teknium/OpenHermes-2.5-Mistral-7B',  # Modelo compatible con Transformers y 4-bit
+    'model_name': 'DavidAU/Llama-3.2-3B-Instruct-heretic-ablitered-uncensored',  # Optimo para 2GB VRAM (MX450)
     'use_airllm': 'false',
     'use_quantization': '4bit',  # Opciones: None, '4bit', '8bit' - recomendado '4bit' para MX450
     'temperature': '0.8',
