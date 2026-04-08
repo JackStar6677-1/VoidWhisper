@@ -30,6 +30,26 @@ Si tus restricciones son absolutas (ej. MX450 / 2GB VRAM pura sin swapping sufic
 
 ---
 
+## ⚡ Escalabilidad Informática (RTX 4060, 4080, 4090)
+
+Si clonas este repositorio en una estación de trabajo potente (por ejemplo una RTX 4060 con **8 GB de VRAM** o superior):
+1. **AirLLM es innecesario**: Ve a *Configuración* y desactiva el motor AirLLM. Un modelo de 7B-8B cuantizado en 4-bits apenas consume ~4.5 GB de VRAM, por lo que cargará entero instantáneamente.
+2. **Carga Única y Memoria Global**: Tras enviar tu primer mensaje, la gráfica demorará unos segundos en mapear el modelo desde tu SSD NVMe a la memoria. Una vez arriba, todos tus mensajes posteriores tomarán **0 segundos en cargar**.
+3. **Velocidad Terminal**: A partir del primer golpe, verás tu respuesta decodificarse a velocidades abismales (40 a 70 palabras por segundo) directamente frente a ti en el flujo de la consola o la burbuja.
+
+### 🎭 Recomendaciones Absolutas: Modelos "Zero-Censorship" & Roleplay
+Si tienes la VRAM (8GB+) para aguantar modelos pesados en puro *Transformers Native*, ve a *Configuración* en VoidWhisper y pega en la celda *Nombre del Modelo* cualquiera de estas bestias de Rol sin límites disponibles hoy en HuggingFace:
+
+- **Para 8GB+ VRAM** (Rápido, Altísima Calidad RAW)
+  - `cognitivecomputations/dolphin-2.9-llama3-8b` *(Perfección absoluta sin filtros, astuto)*
+  - `Sao10K/L3-8B-Stheno-v3.2` *(Centrado un 100% puramente en Roleplay creativo e intenso)*
+- **Para 12GB+ VRAM** (Extensa longitud narrativa)
+  - `Sao10K/Fimbulvetr-11B-v2` *(Un gigante dormido. Una inmersión brutal de trama)*
+- **Para Monstruos de 24GB+ VRAM** (Inteligencia superior a Chatgpt-4)
+  - `cognitivecomputations/dolphin-2.9-mixtral-8x7b` *(La obra cumbre de la IA de código abierto)*
+
+---
+
 ## 🚀 Instalación y Despliegue Rápido
 
 1. Asegúrate de tener Python instalado y clona este repositorio:
