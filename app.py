@@ -643,8 +643,8 @@ def background_generate(app, chat_id, user_input, message_format):
                 response = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
             else:
                 # Standard transformers backend
-                device = getattr(model, 'device', 'cpu')
-                inputs = tokenizer(full_prompt, return_tensors='pt').to(device)
+                device_target = 'cuda' if torch.cuda.is_available() else 'cpu'
+                inputs = tokenizer(full_prompt, return_tensors='pt').to(device_target)
                 outputs = model.generate(
                     **inputs,
                     max_new_tokens=config['max_length'], # Mejor práctica moderna
