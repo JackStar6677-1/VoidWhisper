@@ -8,14 +8,33 @@ import json
 import torch
 from datetime import datetime, timedelta
 from sqlalchemy import inspect
+import os
+import sys
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+VENDORED_AIRLLM_DIR = os.path.join(BASE_DIR, 'vendor', 'VoidAirLLM', 'air_llm')
+AIRLLM_AVAILABLE = False
+AIRLLM_IMPORT_SOURCE = None
+
+if os.path.isdir(VENDORED_AIRLLM_DIR) and VENDORED_AIRLLM_DIR not in sys.path:
+    # Preferimos la copia local versionada si existe, pero sin depender de ella.
+    sys.path.insert(0, VENDORED_AIRLLM_DIR)
+
 try:
     from airllm import AutoModel as AirAutoModel
     AIRLLM_AVAILABLE = True
+    AIRLLM_IMPORT_SOURCE = 'vendored' if os.path.isdir(VENDORED_AIRLLM_DIR) else 'installed'
 except ImportError:
-    AIRLLM_AVAILABLE = False
+    if VENDORED_AIRLLM_DIR in sys.path:
+        sys.path.remove(VENDORED_AIRLLM_DIR)
+    try:
+        from airllm import AutoModel as AirAutoModel
+        AIRLLM_AVAILABLE = True
+        AIRLLM_IMPORT_SOURCE = 'installed'
+    except ImportError:
+        AIRLLM_AVAILABLE = False
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-import sys
 import threading
 from collections import deque
 
@@ -47,9 +66,6 @@ except ImportError:
 
 current_model_name = None
 GENERATION_TASKS = {}
-
-import os
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 # Evitar fugas relativas: forzamos el filepath absouto dentro de VoidWhisper
