@@ -5,7 +5,7 @@ import re
 from typing import Any, Dict, Iterable, List, Optional
 
 import yaml
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, snapshot_download
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -65,7 +65,7 @@ DEFAULT_SETTINGS_FILE = {
     "enable_thinking": False,
     "character": "VoidWhisper",
     "preset": "VoidWhisper-Heavy",
-    "model_name": "DavidAU/Llama-3.2-3B-Instruct-heretic-ablitered-uncensored",
+    "model_name": "",
     "use_airllm": "false",
     "use_quantization": "4bit",
     "temperature": "0.8",
@@ -190,19 +190,48 @@ def save_interface_settings(data: Dict[str, Any]) -> None:
 def download_hf_asset(repo_id: str, filename: str, target_dir: Optional[Path] = None) -> Path:
     target_dir = target_dir or MODEL_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
-    downloaded = hf_hub_download(
-        repo_id=repo_id.strip(),
-        filename=filename.strip(),
-        local_dir=str(target_dir),
+    repo_id = repo_id.strip()
+    filename = filename.strip()
+    if filename:
+        downloaded = hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            local_dir=str(target_dir),
+            local_dir_use_symlinks=False,
+        )
+        return Path(downloaded)
+
+    safe_repo_name = slugify_name(repo_id.replace("/", "__"))
+    local_repo_dir = target_dir / safe_repo_name
+    local_repo_dir.mkdir(parents=True, exist_ok=True)
+    downloaded_dir = snapshot_download(
+        repo_id=repo_id,
+        local_dir=str(local_repo_dir),
         local_dir_use_symlinks=False,
     )
-    return Path(downloaded)
+    return Path(downloaded_dir)
 
 
 def list_local_models() -> List[str]:
     models: List[str] = []
+    seen = set()
     for path in MODEL_DIR.rglob("*"):
         if path.is_file() and path.suffix.lower() == ".gguf":
-            models.append(str(path.relative_to(MODEL_DIR)).replace("\\", "/"))
+            rel = str(path.relative_to(MODEL_DIR)).replace("\\", "/")
+            if rel not in seen:
+                models.append(rel)
+                seen.add(rel)
+        elif path.is_dir():
+            markers = {
+                "config.json",
+                "model.safetensors",
+                "pytorch_model.bin",
+                "tokenizer.json",
+                "tokenizer_config.json",
+            }
+            if any(child.name in markers for child in path.iterdir() if child.is_file()):
+                rel = str(path.relative_to(MODEL_DIR)).replace("\\", "/")
+                if rel not in seen:
+                    models.append(rel)
+                    seen.add(rel)
     return sorted(models)
-

@@ -3,3 +3,4 @@ chat_style: messenger
 enable_thinking: false
 character: VoidWhisper
 preset: VoidWhisper-Heavy
+model_name: ""

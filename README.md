@@ -2,14 +2,14 @@
 
 ![VoidWhisper banner](assets/voidwhisper-hero.svg)
 
-**VoidWhisper** es una interfaz local de IA pensada para chat, roleplay, personajes editables y carga de modelos desde tu propio entorno. La idea es simple: una base oscura, elegante y potente, con un flujo tipo webui pero integrada en un proyecto propio.
+**VoidWhisper** es una interfaz local de IA pensada para chat, roleplay, personajes editables y carga de modelos desde tu propio entorno. La idea es simple: una base oscura, elegante y potente, con gestión de modelos integrada directamente en el proyecto.
 
 ## Lo esencial
 
 - Interfaz local con estética galáctica, oscura y cuidada.
 - Soporte para personajes YAML editables.
 - Presets de generación separados del personaje.
-- Descarga directa de modelos GGUF desde Hugging Face.
+- Descarga directa de modelos y archivos desde Hugging Face.
 - Backend híbrido: `Transformers`, `AirLLM` y `llama.cpp` cuando toca.
 - Configuración persistente en `user_data/`.
 
@@ -17,7 +17,7 @@
 
 ```mermaid
 flowchart LR
-    U[Jack / Operador] --> UI[VoidWhisper Web UI]
+    U[Jack / Operador] --> UI[VoidWhisper UI]
     UI --> C[Personajes YAML]
     UI --> P[Presets YAML]
     UI --> M[Config de modelos]
@@ -93,7 +93,7 @@ sequenceDiagram
 
 ## Estructura de datos
 
-VoidWhisper ahora entiende una organización parecida a `text-generation-webui`:
+VoidWhisper organiza sus datos locales así:
 
 - `user_data/characters/`
   - personajes editables en YAML
@@ -128,8 +128,9 @@ Desde la pantalla de configuración puedes:
 
 - escribir un repo de Hugging Face
 - indicar un `.gguf` local
-- descargar el archivo al directorio del proyecto
-- ver los modelos locales detectados
+- descargar un archivo suelto o un repo completo al directorio del proyecto
+- elegir el modelo local activo desde un selector
+- ver los modelos y carpetas locales detectados
 
 ## Instalación rápida
 

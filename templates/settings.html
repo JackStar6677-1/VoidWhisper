@@ -41,8 +41,21 @@
                 <div class="settings-section">
                     <h2>🧠 Parámetros del motor inferencial</h2>
                     <label for="model_name">Modelo activo o repo HF</label>
-                    <input type="text" id="model_name" name="model_name" value="{{ config.model_name }}" required>
-                    <p class="text-muted" style="margin-top:-0.5rem;">Puedes escribir un repo de Hugging Face o un archivo `.gguf` local dentro de `user_data/models`.</p>
+                    <input type="text" id="model_name" name="model_name" value="{{ config.model_name }}">
+                    <p class="text-muted" style="margin-top:-0.5rem;">Puedes escribir un repo de Hugging Face, un archivo `.gguf` local o una carpeta descargada dentro de `user_data/models`.</p>
+
+                    {% if available_local_models %}
+                    <label for="local_model">Modelos locales detectados</label>
+                    <select id="local_model" name="local_model" style="margin-bottom: 0.5rem;">
+                        <option value="">-- Selecciona uno --</option>
+                        {% for model_name in available_local_models %}
+                        <option value="{{ model_name }}" {% if config.model_name == model_name %}selected{% endif %}>{{ model_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div style="display:flex; justify-content:flex-end; margin-bottom: 0.5rem;">
+                        <button type="submit" formaction="{{ url_for('use_local_model') }}" formmethod="POST">Usar modelo local</button>
+                    </div>
+                    {% endif %}
 
                     <label for="loader">Loader</label>
                     <select id="loader" name="loader">
@@ -90,10 +103,10 @@
                             </select>
                         </div>
                         <div style="flex:1">
-                            <label for="use_airllm">Motor AirLLM (Block-layer infer.)</label>
+                            <label for="use_airllm">Motor AirLLM (opcional)</label>
                             <select id="use_airllm" name="use_airllm" style="margin-bottom:0;">
-                                <option value="false" {% if config.use_airllm == 'false' %}selected{% endif %}>Apagado (Transformers)</option>
-                                <option value="true" {% if config.use_airllm == 'true' %}selected{% endif %}>Activado (Bypass Limitación Física)</option>
+                                <option value="false" {% if config.use_airllm == 'false' %}selected{% endif %}>Apagado</option>
+                                <option value="true" {% if config.use_airllm == 'true' %}selected{% endif %}>Activado</option>
                             </select>
                         </div>
                     </div>
@@ -139,13 +152,14 @@
         </form>
 
         <div class="settings-section" style="margin-top: 2rem;">
-            <h2>⬇️ Descargar GGUF desde Hugging Face</h2>
+            <h2>⬇️ Descargar modelos desde Hugging Face</h2>
             <form action="{{ url_for('download_model') }}" method="POST">
                 <label for="repo_id">Repo</label>
                 <input type="text" id="repo_id" name="repo_id" placeholder="DavidAU/L3.2-Rogue-Creative-Instruct-Uncensored-Abliterated-7B-GGUF" required>
 
-                <label for="file_name">File name</label>
-                <input type="text" id="file_name" name="file_name" placeholder="L3.2-Rogue-Creative-Instruct-Uncensored-Abliterated-7B-D_AU-Q4_k_m.gguf" required>
+                <label for="file_name">File name opcional</label>
+                <input type="text" id="file_name" name="file_name" placeholder="L3.2-Rogue-Creative-Instruct-Uncensored-Abliterated-7B-D_AU-Q4_k_m.gguf">
+                <p class="text-muted" style="margin-top:-0.5rem;">Si lo dejas vacío, se descarga el repo completo a una carpeta local.</p>
 
                 <div style="margin-top: 1rem; text-align: right;">
                     <button type="submit">Descargar al directorio local</button>
@@ -153,7 +167,7 @@
             </form>
             {% if available_local_models %}
             <div style="margin-top: 1rem;">
-                <label>Modelos locales detectados</label>
+                <label>Modelos y carpetas locales detectados</label>
                 <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-muted);">
                     {% for model_name in available_local_models %}
                     <li>{{ model_name }}</li>

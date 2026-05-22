@@ -147,7 +147,7 @@ class AuthUser(UserMixin, db.Model):
     reset_expires = db.Column(db.DateTime, nullable=True)
 
 DEFAULT_SETTINGS = {
-    'model_name': 'DavidAU/Llama-3.2-3B-Instruct-heretic-ablitered-uncensored',  # Optimo para 2GB VRAM (MX450)
+    'model_name': '',
     'loader': '',
     'character': 'VoidWhisper',
     'preset': 'VoidWhisper-Heavy',
@@ -233,6 +233,29 @@ def is_gguf_reference(model_name):
     return lower.endswith('.gguf') or 'gguf' in lower
 
 
+def local_model_has_gguf(path: Path) -> bool:
+    if path.is_file():
+        return path.suffix.lower() == '.gguf'
+    if path.is_dir():
+        return any(child.is_file() and child.suffix.lower() == '.gguf' for child in path.rglob('*.gguf'))
+    return False
+
+
+def resolve_local_gguf_target(path: Path) -> Path:
+    if path.is_file():
+        return path
+    if path.is_dir():
+        gguf_files = sorted(child for child in path.rglob('*.gguf') if child.is_file())
+        if len(gguf_files) == 1:
+            return gguf_files[0]
+        if len(gguf_files) > 1:
+            raise OSError(
+                f'La carpeta {path} contiene varios GGUF. '
+                'Selecciona uno concreto o deja un solo archivo.'
+            )
+    raise OSError(f'No se encontró un archivo GGUF válido en {path}.')
+
+
 def sanitize_model_name(model_name):
     if not isinstance(model_name, str):
         return DEFAULT_SETTINGS['model_name']
@@ -284,7 +307,8 @@ def select_backend(config):
     explicit_loader = (config.get('loader') or '').strip()
     inferred_loader, _ = infer_model_loader_and_ctx(model_name)
     loader = explicit_loader or inferred_loader
-    if is_gguf_reference(model_name):
+    resolved_model = resolve_model_path(model_name)
+    if (resolved_model and local_model_has_gguf(resolved_model)) or is_gguf_reference(model_name):
         loader = 'llama.cpp'
     return loader or 'Transformers'
 
@@ -292,6 +316,8 @@ def select_backend(config):
 def load_model(config):
     global tokenizer, model, current_model_name, current_backend
     model_name = config['model_name']
+    if not str(model_name).strip():
+        raise OSError('No hay un modelo activo seleccionado.')
     use_quantization = config.get('use_quantization')
     use_airllm = config.get('use_airllm', 'false').lower() == 'true'
     backend = select_backend(config)
@@ -319,6 +345,8 @@ def load_model(config):
                 f'No se encontró el archivo GGUF local: {resolved_model}. '
                 'Descárgalo primero en user_data/models.'
             )
+        if resolved_model.is_dir():
+            resolved_model = resolve_local_gguf_target(resolved_model)
 
         ctx_size = int(config.get('ctx_size', 8192))
         gpu_layers = int(config.get('gpu_layers', -1))
@@ -575,7 +603,7 @@ Responde como este perfil en todas las interacciones."""
     ensure_character('Operador', operador_prompt)
 
     # Importa personajes definidos en archivos para que el proyecto tenga
-    # una capa editable estilo webui además de la DB.
+    # una capa editable además de la DB.
     for record in load_characters():
         existing = Character.query.filter_by(name=record["name"]).first()
         if existing:
@@ -922,7 +950,9 @@ def duplicate_character(char_id):
 def settings_view():
     user = User.query.first()
     if request.method == 'POST':
-        requested_model = request.form['model_name']
+        requested_model = request.form.get('local_model', '').strip() or request.form.get('model_name', '').strip()
+        if not requested_model:
+            requested_model = get_setting('model_name', '').strip()
         set_setting('model_name', requested_model)
         set_setting('loader', request.form.get('loader', ''))
         set_setting('character', request.form.get('character', DEFAULT_SETTINGS['character']))
@@ -961,7 +991,8 @@ def settings_view():
         })
         save_interface_settings(current_interface)
 
-        load_model(get_config())
+        if requested_model:
+            load_model(get_config())
         return redirect(url_for('settings_view'))
 
     config = get_config()
@@ -977,26 +1008,56 @@ def settings_view():
     )
 
 
+@app.route('/use_local_model', methods=['POST'])
+@login_required
+def use_local_model():
+    selected_model = request.form.get('local_model', '').strip()
+    if not selected_model:
+        flash('Selecciona un modelo local primero.')
+        return redirect(url_for('settings_view'))
+
+    set_setting('model_name', selected_model)
+    current_interface = load_interface_settings()
+    current_interface['model_name'] = selected_model
+    save_interface_settings(current_interface)
+
+    try:
+        load_model(get_config())
+        flash(f'Modelo activo: {selected_model}')
+    except Exception as exc:
+        flash(f'No se pudo cargar el modelo seleccionado: {exc}')
+    return redirect(url_for('settings_view'))
+
+
 @app.route('/download_model', methods=['POST'])
 @login_required
 def download_model():
     repo_id = request.form.get('repo_id', '').strip()
     file_name = request.form.get('file_name', '').strip()
-    if not repo_id or not file_name:
-        flash('Debes indicar el repo y el archivo GGUF.')
+    if not repo_id:
+        flash('Debes indicar el repo.')
         return redirect(url_for('settings_view'))
 
     try:
         downloaded = download_hf_asset(repo_id, file_name, MODEL_DIR)
-        set_setting('model_name', downloaded.name)
-        set_setting('loader', 'llama.cpp')
-        set_setting('ctx_size', '8192')
+        local_ref = downloaded.relative_to(MODEL_DIR).as_posix() if downloaded.is_relative_to(MODEL_DIR) else downloaded.as_posix()
+        inferred_loader = 'llama.cpp' if local_model_has_gguf(downloaded) else ''
+        set_setting('model_name', local_ref)
+        if inferred_loader:
+            set_setting('loader', inferred_loader)
+        if inferred_loader == 'llama.cpp':
+            set_setting('ctx_size', '8192')
         current_interface = load_interface_settings()
-        current_interface['model_name'] = downloaded.name
-        current_interface['loader'] = 'llama.cpp'
-        current_interface['ctx_size'] = 8192
+        current_interface['model_name'] = local_ref
+        if inferred_loader:
+            current_interface['loader'] = inferred_loader
+            current_interface['ctx_size'] = 8192
         save_interface_settings(current_interface)
-        flash(f'Modelo descargado: {downloaded.name}')
+        try:
+            load_model(get_config())
+        except Exception:
+            pass
+        flash(f'Modelo descargado: {local_ref}')
     except Exception as exc:
         flash(f'Error descargando modelo: {exc}')
     return redirect(url_for('settings_view'))
