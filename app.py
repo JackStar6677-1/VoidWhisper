@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, has_app_context
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, has_app_context, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,6 +11,7 @@ from sqlalchemy import inspect
 import os
 import sys
 import re
+from io import BytesIO
 from pathlib import Path
 
 from voidwhisper_store import (
@@ -26,6 +27,8 @@ from voidwhisper_store import (
     load_model_config,
     load_presets,
     list_local_models,
+    delete_preset_file,
+    get_preset_path,
     save_character_file,
     save_interface_settings,
     save_preset_file,
@@ -207,7 +210,7 @@ def get_config():
     model_name = get_setting('model_name', DEFAULT_SETTINGS['model_name'])
     model_name = sanitize_model_name(model_name)
     preset_name = get_setting('preset', DEFAULT_SETTINGS['preset'])
-    preset_payload = load_presets().get(preset_name, {})
+    preset_payload = get_preset_payload(preset_name)
     model_loader, model_ctx = infer_model_loader_and_ctx(model_name)
     return {
         'model_name': model_name,
@@ -311,6 +314,21 @@ def select_backend(config):
     if (resolved_model and local_model_has_gguf(resolved_model)) or is_gguf_reference(model_name):
         loader = 'llama.cpp'
     return loader or 'Transformers'
+
+
+def normalize_preset_payload(payload):
+    data = dict(payload or {})
+    return {
+        'temperature': float(data.get('temperature', 0.76)),
+        'top_p': float(data.get('top_p', 0.92)),
+        'min_p': float(data.get('min_p', 0.05)),
+        'repetition_penalty': float(data.get('repetition_penalty', 1.2)),
+        'max_length': int(data.get('max_length', 300)),
+    }
+
+
+def get_preset_payload(name):
+    return normalize_preset_payload(load_presets().get(name, {}))
 
 
 def load_model(config):
@@ -746,11 +764,125 @@ def chat_view(chat_id):
     messages = json.loads(chat.messages)
     return render_template('chat.html', chat=chat, character=character, messages=messages)
 
+
+@app.route('/chat/<int:chat_id>/export')
+@login_required
+def export_chat(chat_id):
+    chat = Chat.query.get_or_404(chat_id)
+    character = db.session.get(Character, chat.character_id)
+    payload = {
+        'chat_name': chat.name,
+        'chat_id': chat.id,
+        'context_note': chat.context_note,
+        'character_name': character.name if character else None,
+        'character_prompt': character.system_prompt if character else None,
+        'messages': json.loads(chat.messages),
+        'exported_at': datetime.utcnow().isoformat() + 'Z',
+    }
+    buffer = BytesIO(json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8'))
+    buffer.seek(0)
+    filename = f"{slugify_name(chat.name)}.json"
+    return send_file(buffer, mimetype='application/json', as_attachment=True, download_name=filename)
+
+
+@app.route('/import_chat', methods=['POST'])
+@login_required
+def import_chat():
+    uploaded = request.files.get('chat_file')
+    if not uploaded or not uploaded.filename:
+        flash('Selecciona un archivo JSON de chat.')
+        return redirect(url_for('index'))
+
+    try:
+        payload = json.loads(uploaded.read().decode('utf-8'))
+        chat_name = payload.get('chat_name') or Path(uploaded.filename).stem
+        context_note = payload.get('context_note', '')
+        messages = payload.get('messages', [])
+
+        character_name = payload.get('character_name')
+        character_prompt = payload.get('character_prompt', '')
+        character = None
+        if character_name:
+            character = Character.query.filter_by(name=character_name).first()
+            if not character:
+                character = Character(name=character_name, system_prompt=character_prompt or 'Eres un personaje local editable.')
+                db.session.add(character)
+                db.session.commit()
+                save_character_file(character.name, '', character.system_prompt)
+
+        if not character:
+            character = Character.query.order_by(Character.id.asc()).first()
+        if not character:
+            raise OSError('No hay personajes disponibles para asociar el chat importado.')
+
+        chat = Chat(
+            name=chat_name,
+            character_id=character.id,
+            user_id=User.query.first().id,
+            context_note=context_note,
+            messages=json.dumps(messages, ensure_ascii=False),
+        )
+        db.session.add(chat)
+        db.session.commit()
+        flash(f'Chat importado: {chat_name}')
+    except Exception as exc:
+        flash(f'No se pudo importar el chat: {exc}')
+    return redirect(url_for('index'))
+
+
+def queue_chat_generation(chat_id, user_input='', message_format='normal'):
+    from flask import current_app
+    app_instance = current_app._get_current_object()
+    GENERATION_TASKS[chat_id] = {'status': 'processing'}
+    thread = threading.Thread(
+        target=background_generate,
+        args=(app_instance, chat_id, user_input, message_format),
+    )
+    thread.start()
+    return thread
+
+
+@app.route('/chat/<int:chat_id>/retry', methods=['POST'])
+@login_required
+def retry_chat(chat_id):
+    chat = Chat.query.get_or_404(chat_id)
+    if not get_config()['model_name']:
+        flash('Selecciona un modelo activo antes de reintentar.')
+        return redirect(url_for('chat_view', chat_id=chat_id))
+    messages = json.loads(chat.messages)
+    if not messages or messages[-1].get('role') != 'ai':
+        flash('No hay una respuesta de IA para regenerar.')
+        return redirect(url_for('chat_view', chat_id=chat_id))
+
+    messages.pop()
+    chat.messages = json.dumps(messages, ensure_ascii=False)
+    db.session.commit()
+    queue_chat_generation(chat_id)
+    return redirect(url_for('chat_view', chat_id=chat_id))
+
+
+@app.route('/chat/<int:chat_id>/continue', methods=['POST'])
+@login_required
+def continue_chat(chat_id):
+    chat = Chat.query.get_or_404(chat_id)
+    if not get_config()['model_name']:
+        flash('Selecciona un modelo activo antes de continuar.')
+        return redirect(url_for('chat_view', chat_id=chat_id))
+    messages = json.loads(chat.messages)
+    if not messages:
+        flash('El chat está vacío.')
+        return redirect(url_for('chat_view', chat_id=chat_id))
+
+    queue_chat_generation(chat_id)
+    return redirect(url_for('chat_view', chat_id=chat_id))
+
 def background_generate(app, chat_id, user_input, message_format):
     with app.app_context():
         try:
             global tokenizer, model
             config = get_config()
+            if not config['model_name']:
+                raise OSError('No hay un modelo activo seleccionado.')
             
             print("\n\n" + "="*60)
             print("[ASYNC] El hilo maestro ha despertado.")
@@ -860,6 +992,12 @@ def background_generate(app, chat_id, user_input, message_format):
 def send_message(chat_id):
     chat = db.session.get(Chat, chat_id)
     messages = json.loads(chat.messages)
+    config = get_config()
+    if not config['model_name']:
+        if request.is_json:
+            return jsonify({'status': 'error', 'message': 'No hay un modelo activo seleccionado.'}), 400
+        flash('Selecciona un modelo activo antes de enviar mensajes.')
+        return redirect(url_for('chat_view', chat_id=chat_id))
     
     # Soporta tanto peticiones JSON como Formurarios nativos
     user_input = request.json.get('message') if request.is_json else request.form.get('message')
@@ -871,15 +1009,7 @@ def send_message(chat_id):
     db.session.commit()
 
     # 2. Señalizar tarea en curso e instanciar hilo Python
-    GENERATION_TASKS[chat_id] = {'status': 'processing'}
-    from flask import current_app
-    app_instance = current_app._get_current_object()
-    
-    thread = threading.Thread(
-        target=background_generate, 
-        args=(app_instance, chat_id, user_input, message_format)
-    )
-    thread.start()
+    queue_chat_generation(chat_id, user_input, message_format)
 
     # 3. Retornar liberación de red inmediata
     if request.is_json:
@@ -1026,6 +1156,76 @@ def use_local_model():
         flash(f'Modelo activo: {selected_model}')
     except Exception as exc:
         flash(f'No se pudo cargar el modelo seleccionado: {exc}')
+    return redirect(url_for('settings_view'))
+
+
+@app.route('/create_preset', methods=['POST'])
+@login_required
+def create_preset():
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('El preset necesita un nombre.')
+        return redirect(url_for('settings_view'))
+
+    payload = {
+        'temperature': float(request.form.get('temperature', 0.76)),
+        'top_p': float(request.form.get('top_p', 0.92)),
+        'min_p': float(request.form.get('min_p', 0.05)),
+        'repetition_penalty': float(request.form.get('repetition_penalty', 1.2)),
+        'max_length': int(request.form.get('max_length', 300)),
+    }
+    save_preset_file(name, payload)
+    flash(f'Preset creado: {name}')
+    return redirect(url_for('settings_view'))
+
+
+@app.route('/edit_preset/<preset_name>', methods=['GET', 'POST'])
+@login_required
+def edit_preset(preset_name):
+    existing = load_presets().get(preset_name)
+    if not existing:
+        flash('Preset no encontrado.')
+        return redirect(url_for('settings_view'))
+
+    if request.method == 'POST':
+        new_name = request.form.get('name', preset_name).strip()
+        payload = {
+            'temperature': float(request.form.get('temperature', 0.76)),
+            'top_p': float(request.form.get('top_p', 0.92)),
+            'min_p': float(request.form.get('min_p', 0.05)),
+            'repetition_penalty': float(request.form.get('repetition_penalty', 1.2)),
+            'max_length': int(request.form.get('max_length', 300)),
+        }
+        save_preset_file(new_name, payload)
+        if new_name != preset_name:
+            delete_preset_file(preset_name)
+        if get_setting('preset', DEFAULT_SETTINGS['preset']) == preset_name:
+            set_setting('preset', new_name)
+            interface_settings = load_interface_settings()
+            interface_settings['preset'] = new_name
+            save_interface_settings(interface_settings)
+        flash(f'Preset guardado: {new_name}')
+        return redirect(url_for('settings_view'))
+
+    return render_template(
+        'edit_preset.html',
+        preset_name=preset_name,
+        preset=normalize_preset_payload(existing),
+    )
+
+
+@app.route('/delete_preset/<preset_name>')
+@login_required
+def delete_preset(preset_name):
+    delete_preset_file(preset_name)
+    if get_setting('preset', DEFAULT_SETTINGS['preset']) == preset_name:
+        available = list(load_presets().keys())
+        fallback = available[0] if available else DEFAULT_SETTINGS['preset']
+        set_setting('preset', fallback)
+        interface_settings = load_interface_settings()
+        interface_settings['preset'] = fallback
+        save_interface_settings(interface_settings)
+    flash(f'Preset eliminado: {preset_name}')
     return redirect(url_for('settings_view'))
 
 

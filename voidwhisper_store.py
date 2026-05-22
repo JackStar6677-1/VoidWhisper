@@ -179,6 +179,16 @@ def save_preset_file(name: str, data: Dict[str, Any]) -> Path:
     return path
 
 
+def delete_preset_file(name: str) -> None:
+    path = PRESET_DIR / f"{slugify_name(name)}.yaml"
+    if path.exists():
+        path.unlink()
+
+
+def get_preset_path(name: str) -> Path:
+    return PRESET_DIR / f"{slugify_name(name)}.yaml"
+
+
 def load_interface_settings() -> Dict[str, Any]:
     return read_yaml(SETTINGS_PATH, DEFAULT_SETTINGS_FILE)
 

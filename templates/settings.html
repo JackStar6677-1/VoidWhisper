@@ -176,6 +176,60 @@
             </div>
             {% endif %}
         </div>
+
+        <div class="settings-section" style="margin-top: 2rem;">
+            <h2>🎛️ Presets de generación</h2>
+            <form action="{{ url_for('create_preset') }}" method="POST" style="margin-bottom: 1rem;">
+                <label for="preset_name">Nuevo preset</label>
+                <input type="text" id="preset_name" name="name" placeholder="VoidWhisper-Heavy" required>
+
+                <div style="display:flex; gap: 10px;">
+                    <div style="flex:1">
+                        <label for="preset_temperature">Temperature</label>
+                        <input type="text" id="preset_temperature" name="temperature" value="{{ config.temperature }}">
+                    </div>
+                    <div style="flex:1">
+                        <label for="preset_top_p">Top p</label>
+                        <input type="text" id="preset_top_p" name="top_p" value="{{ config.top_p }}">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap: 10px;">
+                    <div style="flex:1">
+                        <label for="preset_min_p">Min p</label>
+                        <input type="text" id="preset_min_p" name="min_p" value="{{ config.min_p }}">
+                    </div>
+                    <div style="flex:1">
+                        <label for="preset_repetition_penalty">Repetition penalty</label>
+                        <input type="text" id="preset_repetition_penalty" name="repetition_penalty" value="{{ config.repetition_penalty }}">
+                    </div>
+                    <div style="flex:1">
+                        <label for="preset_max_length">Max length</label>
+                        <input type="number" id="preset_max_length" name="max_length" value="{{ config.max_length }}">
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem; text-align: right;">
+                    <button type="submit">Guardar preset</button>
+                </div>
+            </form>
+
+            {% if available_presets %}
+            <div style="display:grid; gap: 0.75rem;">
+                {% for preset_name in available_presets %}
+                <div style="display:flex; justify-content:space-between; align-items:center; gap: 1rem; padding: 0.85rem 1rem; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.03);">
+                    <div>
+                        <strong>{{ preset_name }}</strong>
+                    </div>
+                    <div style="display:flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <a href="{{ url_for('edit_preset', preset_name=preset_name) }}">Editar</a>
+                        <a href="{{ url_for('delete_preset', preset_name=preset_name) }}" onclick="return confirm('¿Borrar preset?')">Borrar</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

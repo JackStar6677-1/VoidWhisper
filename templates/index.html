@@ -65,7 +65,7 @@
 {% block content %}
 <div class="welcome-container">
     <div class="welcome-logo">🌌</div>
-    <h1 class="welcome-title">VoidWhisper Web</h1>
+    <h1 class="welcome-title">VoidWhisper</h1>
     <p class="welcome-subtitle">Haz click en un chat a la izquierda para continuar tu historia, o utiliza las herramientas aquí abajo para crear una nueva interacción.</p>
 
     <div class="tools-grid">
@@ -112,6 +112,15 @@
                 <textarea id="system_prompt" name="system_prompt" rows="3" required placeholder="Límites, personalidad..."></textarea>
                 
                 <button type="submit" style="width:100%">Despertar Personaje</button>
+            </form>
+        </div>
+
+        <div class="tool-card" style="grid-column: 1 / -1;">
+            <h3>RECUPERAR CHAT</h3>
+            <form action="{{ url_for('import_chat') }}" method="POST" enctype="multipart/form-data">
+                <label>Cargar exportación JSON</label>
+                <input type="file" name="chat_file" accept=".json,application/json" required>
+                <button type="submit" style="width:100%">Importar chat</button>
             </form>
         </div>
     </div>

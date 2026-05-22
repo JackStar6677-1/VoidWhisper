@@ -235,6 +235,13 @@
             <p>Conversando con {{ character.name }}</p>
         </div>
         <div class="chat-meta-actions">
+            <a href="{{ url_for('export_chat', chat_id=chat.id) }}">⬇️ Exportar</a>
+            <form action="{{ url_for('retry_chat', chat_id=chat.id) }}" method="POST" style="display:inline;">
+                <button type="submit" style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.8rem; border-radius: var(--border-radius-md); font-size: 0.8rem; font-weight: 600; color: var(--text-main); border: none; cursor: pointer;">↻ Reintentar</button>
+            </form>
+            <form action="{{ url_for('continue_chat', chat_id=chat.id) }}" method="POST" style="display:inline;">
+                <button type="submit" style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.8rem; border-radius: var(--border-radius-md); font-size: 0.8rem; font-weight: 600; color: var(--text-main); border: none; cursor: pointer;">⟶ Continuar</button>
+            </form>
             <a href="{{ url_for('clear_chat', chat_id=chat.id) }}" onclick="return confirm('¿Vaciar Memoria?')">♻️ Limpiar</a>
             <a href="{{ url_for('delete_chat', chat_id=chat.id) }}" onclick="return confirm('¿Destruir Hilo?')">🗑️</a>
         </div>
@@ -365,11 +372,17 @@
 
         try {
             // Asynchronous dispatch
-            await fetch("{{ url_for('send_message', chat_id=chat.id) }}", {
+            const resp = await fetch("{{ url_for('send_message', chat_id=chat.id) }}", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({ message: msgText, format: msgFormat })
             });
+            if (!resp.ok) {
+                const data = await resp.json().catch(() => ({}));
+                alert(data.message || "No se pudo enviar el mensaje.");
+                window.location.reload();
+                return;
+            }
             
             // Iniciar escucha del estatus
             checkStatus();

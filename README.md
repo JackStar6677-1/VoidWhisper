@@ -12,6 +12,9 @@
 - Descarga directa de modelos y archivos desde Hugging Face.
 - Backend híbrido: `Transformers`, `AirLLM` y `llama.cpp` cuando toca.
 - Configuración persistente en `user_data/`.
+- Exportación e importación de chats.
+- Reintento y continuación de respuestas desde la vista de conversación.
+- Editor de presets integrado.
 
 ## Vista General
 
@@ -131,6 +134,13 @@ Desde la pantalla de configuración puedes:
 - descargar un archivo suelto o un repo completo al directorio del proyecto
 - elegir el modelo local activo desde un selector
 - ver los modelos y carpetas locales detectados
+
+Desde el panel principal también puedes:
+
+- exportar un chat a JSON
+- importar un chat exportado
+- reintentar la última respuesta de la IA
+- continuar la generación desde el último contexto
 
 ## Instalación rápida
 
