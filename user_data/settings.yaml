@@ -3,4 +3,10 @@ chat_style: messenger
 enable_thinking: false
 character: VoidWhisper
 preset: VoidWhisper-Heavy
-model_name: ""
+model_name: ''
+use_airllm: 'false'
+use_quantization: 'false'
+temperature: '0.76'
+top_p: '0.92'
+max_length: '60'
+no_limit_prefix: ''

@@ -72,13 +72,30 @@ class LogCatcher:
         self.lock = threading.Lock()
     
     def write(self, text):
-        self.original_stdout.write(text)
+        if not text:
+            return
+        safe_text = text
+        encoding = getattr(self.original_stdout, "encoding", None) or "utf-8"
+        try:
+            safe_text = text.encode(encoding, errors="replace").decode(encoding, errors="replace")
+        except Exception:
+            safe_text = text.encode("utf-8", errors="replace").decode("utf-8", errors="replace")
+        try:
+            self.original_stdout.write(safe_text)
+        except UnicodeEncodeError:
+            if hasattr(self.original_stdout, "buffer"):
+                self.original_stdout.buffer.write(safe_text.encode(encoding, errors="replace"))
+            else:
+                self.original_stdout.write(safe_text.encode("ascii", errors="replace").decode("ascii"))
         if text.strip():
             with self.lock:
                 self.logs.append(text.strip())
                 
     def flush(self):
-        self.original_stdout.flush()
+        try:
+            self.original_stdout.flush()
+        except Exception:
+            pass
 
 global_log_catcher = LogCatcher()
 sys.stdout = global_log_catcher
@@ -383,7 +400,7 @@ def load_model(config):
         print(f"✅ Modelo GGUF '{model_name}' cargado correctamente.")
         return
 
-    tokenizer_model = model_name
+    tokenizer_model = str(resolved_model) if resolved_model is not None else model_name
     try:
         print(f'Intentando cargar tokenizador de {tokenizer_model}...')
         tokenizer = AutoTokenizer.from_pretrained(
@@ -451,7 +468,7 @@ def load_model(config):
     from transformers import AutoModelForCausalLM
     print(f'Cargando modelo con config: {model_kwargs}...')
     try:
-        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+        model = AutoModelForCausalLM.from_pretrained(tokenizer_model, **model_kwargs)
         current_model_name = model_name
         current_backend = 'transformers'
     except Exception as e:
@@ -465,7 +482,7 @@ def load_model(config):
         if 'quantization_config' in model_kwargs:
             print('Intentando cargar sin cuantización...')
             model_kwargs.pop('quantization_config', None)
-            model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+            model = AutoModelForCausalLM.from_pretrained(tokenizer_model, **model_kwargs)
             current_backend = 'transformers'
         else:
             raise
@@ -1082,44 +1099,44 @@ def duplicate_character(char_id):
 def settings_view():
     user = User.query.first()
     if request.method == 'POST':
+        current_interface = load_interface_settings()
+        user_info = json.loads(user.info)
         requested_model = request.form.get('local_model', '').strip() or request.form.get('model_name', '').strip()
-        if not requested_model:
-            requested_model = get_setting('model_name', '').strip()
-        set_setting('model_name', requested_model)
-        set_setting('loader', request.form.get('loader', ''))
-        set_setting('character', request.form.get('character', DEFAULT_SETTINGS['character']))
-        set_setting('preset', request.form.get('preset', DEFAULT_SETTINGS['preset']))
-        set_setting('ctx_size', request.form.get('ctx_size', '8192'))
-        set_setting('gpu_layers', request.form.get('gpu_layers', '-1'))
-        set_setting('temperature', request.form['temperature'])
-        set_setting('top_p', request.form['top_p'])
-        set_setting('max_length', request.form['max_length'])
-        set_setting('no_limit_prefix', request.form['no_limit_prefix'])
+        if requested_model:
+            set_setting('model_name', requested_model)
+        set_setting('loader', request.form.get('loader', current_interface.get('loader', '')))
+        set_setting('character', request.form.get('character', current_interface.get('character', DEFAULT_SETTINGS['character'])))
+        set_setting('preset', request.form.get('preset', current_interface.get('preset', DEFAULT_SETTINGS['preset'])))
+        set_setting('ctx_size', request.form.get('ctx_size', str(current_interface.get('ctx_size', '8192'))))
+        set_setting('gpu_layers', request.form.get('gpu_layers', str(current_interface.get('gpu_layers', '-1'))))
+        set_setting('temperature', request.form.get('temperature', str(current_interface.get('temperature', DEFAULT_SETTINGS['temperature']))))
+        set_setting('top_p', request.form.get('top_p', str(current_interface.get('top_p', DEFAULT_SETTINGS['top_p']))))
+        set_setting('max_length', request.form.get('max_length', str(current_interface.get('max_length', DEFAULT_SETTINGS['max_length']))))
+        set_setting('no_limit_prefix', request.form.get('no_limit_prefix', current_interface.get('no_limit_prefix', DEFAULT_SETTINGS['no_limit_prefix'])))
         set_setting('use_airllm', request.form.get('use_airllm', DEFAULT_SETTINGS['use_airllm']))
         set_setting('use_quantization', request.form.get('use_quantization', DEFAULT_SETTINGS['use_quantization']))
 
-        user.name = request.form['user_name']
+        user.name = request.form.get('user_name', user.name)
         user.info = json.dumps({
-            'profile': request.form['user_profile'],
-            'interests': request.form['user_interests'],
-            'tone': request.form['user_tone']
+            'profile': request.form.get('user_profile', user_info.get('profile', '')),
+            'interests': request.form.get('user_interests', user_info.get('interests', '')),
+            'tone': request.form.get('user_tone', user_info.get('tone', ''))
         })
         db.session.commit()
 
-        current_interface = load_interface_settings()
         current_interface.update({
             'mode': request.form.get('mode', current_interface.get('mode', 'chat')),
             'chat_style': request.form.get('chat_style', current_interface.get('chat_style', 'messenger')),
             'enable_thinking': request.form.get('enable_thinking', 'false') == 'true',
-            'character': request.form.get('character', DEFAULT_SETTINGS['character']),
-            'preset': request.form.get('preset', DEFAULT_SETTINGS['preset']),
-            'model_name': requested_model,
-            'use_airllm': request.form.get('use_airllm', DEFAULT_SETTINGS['use_airllm']),
-            'use_quantization': request.form.get('use_quantization', DEFAULT_SETTINGS['use_quantization']),
-            'temperature': request.form['temperature'],
-            'top_p': request.form['top_p'],
-            'max_length': request.form['max_length'],
-            'no_limit_prefix': request.form['no_limit_prefix'],
+            'character': request.form.get('character', current_interface.get('character', DEFAULT_SETTINGS['character'])),
+            'preset': request.form.get('preset', current_interface.get('preset', DEFAULT_SETTINGS['preset'])),
+            'model_name': requested_model or current_interface.get('model_name', ''),
+            'use_airllm': request.form.get('use_airllm', current_interface.get('use_airllm', DEFAULT_SETTINGS['use_airllm'])),
+            'use_quantization': request.form.get('use_quantization', current_interface.get('use_quantization', DEFAULT_SETTINGS['use_quantization'])),
+            'temperature': request.form.get('temperature', str(current_interface.get('temperature', DEFAULT_SETTINGS['temperature']))),
+            'top_p': request.form.get('top_p', str(current_interface.get('top_p', DEFAULT_SETTINGS['top_p']))),
+            'max_length': request.form.get('max_length', str(current_interface.get('max_length', DEFAULT_SETTINGS['max_length']))),
+            'no_limit_prefix': request.form.get('no_limit_prefix', current_interface.get('no_limit_prefix', DEFAULT_SETTINGS['no_limit_prefix'])),
         })
         save_interface_settings(current_interface)
 
