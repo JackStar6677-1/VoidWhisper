@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, has_app_context
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,6 +10,27 @@ from datetime import datetime, timedelta
 from sqlalchemy import inspect
 import os
 import sys
+import re
+from pathlib import Path
+
+from voidwhisper_store import (
+    CHARACTER_DIR,
+    MODEL_CONFIG_PATH,
+    MODEL_DIR,
+    PRESET_DIR,
+    SETTINGS_PATH,
+    download_hf_asset,
+    ensure_default_assets,
+    load_characters,
+    load_interface_settings,
+    load_model_config,
+    load_presets,
+    list_local_models,
+    save_character_file,
+    save_interface_settings,
+    save_preset_file,
+    slugify_name,
+)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 VENDORED_AIRLLM_DIR = os.path.join(BASE_DIR, 'vendor', 'VoidAirLLM', 'air_llm')
@@ -65,7 +86,15 @@ except ImportError:
     pass
 
 current_model_name = None
+current_backend = None
 GENERATION_TASKS = {}
+
+try:
+    from llama_cpp import Llama
+    LLAMA_CPP_AVAILABLE = True
+except Exception:
+    Llama = None
+    LLAMA_CPP_AVAILABLE = False
 
 app = Flask(__name__)
 # Evitar fugas relativas: forzamos el filepath absouto dentro de VoidWhisper
@@ -119,6 +148,9 @@ class AuthUser(UserMixin, db.Model):
 
 DEFAULT_SETTINGS = {
     'model_name': 'DavidAU/Llama-3.2-3B-Instruct-heretic-ablitered-uncensored',  # Optimo para 2GB VRAM (MX450)
+    'loader': '',
+    'character': 'VoidWhisper',
+    'preset': 'VoidWhisper-Heavy',
     'use_airllm': 'false',
     'use_quantization': '4bit',  # Opciones: None, '4bit', '8bit' - recomendado '4bit' para MX450
     'temperature': '0.8',
@@ -148,30 +180,49 @@ def load_user(user_id):
     return db.session.get(AuthUser, int(user_id))
 
 def get_setting(key, default=None):
-    setting = Setting.query.filter_by(key=key).first()
-    return setting.value if setting else default
+    if has_app_context():
+        setting = Setting.query.filter_by(key=key).first()
+        if setting:
+            return setting.value
+    interface_settings = load_interface_settings()
+    return interface_settings.get(key, default)
 
 
 def set_setting(key, value):
-    setting = Setting.query.filter_by(key=key).first()
-    if setting:
-        setting.value = value
+    if has_app_context():
+        setting = Setting.query.filter_by(key=key).first()
+        if setting:
+            setting.value = value
+        else:
+            setting = Setting(key=key, value=value)
+            db.session.add(setting)
+        db.session.commit()
     else:
-        setting = Setting(key=key, value=value)
-        db.session.add(setting)
-    db.session.commit()
+        interface_settings = load_interface_settings()
+        interface_settings[key] = value
+        save_interface_settings(interface_settings)
 
 
 def get_config():
     model_name = get_setting('model_name', DEFAULT_SETTINGS['model_name'])
     model_name = sanitize_model_name(model_name)
+    preset_name = get_setting('preset', DEFAULT_SETTINGS['preset'])
+    preset_payload = load_presets().get(preset_name, {})
+    model_loader, model_ctx = infer_model_loader_and_ctx(model_name)
     return {
         'model_name': model_name,
+        'loader': get_setting('loader', model_loader or DEFAULT_SETTINGS['loader']) or model_loader,
+        'character': get_setting('character', DEFAULT_SETTINGS['character']),
+        'preset': preset_name,
         'use_airllm': get_setting('use_airllm', DEFAULT_SETTINGS['use_airllm']),
         'use_quantization': get_setting('use_quantization', DEFAULT_SETTINGS['use_quantization']),
-        'temperature': float(get_setting('temperature', DEFAULT_SETTINGS['temperature'])),
-        'top_p': float(get_setting('top_p', DEFAULT_SETTINGS['top_p'])),
-        'max_length': int(get_setting('max_length', DEFAULT_SETTINGS['max_length'])),
+        'temperature': float(preset_payload.get('temperature', get_setting('temperature', DEFAULT_SETTINGS['temperature']))),
+        'top_p': float(preset_payload.get('top_p', get_setting('top_p', DEFAULT_SETTINGS['top_p']))),
+        'max_length': int(preset_payload.get('max_length', get_setting('max_length', DEFAULT_SETTINGS['max_length']))),
+        'min_p': float(preset_payload.get('min_p', 0.05)),
+        'repetition_penalty': float(preset_payload.get('repetition_penalty', 1.1)),
+        'ctx_size': int(get_setting('ctx_size', model_ctx or 8192)),
+        'gpu_layers': int(get_setting('gpu_layers', -1)),
         'no_limit_prefix': get_setting('no_limit_prefix', DEFAULT_SETTINGS['no_limit_prefix']),
     }
 
@@ -185,31 +236,105 @@ def is_gguf_reference(model_name):
 def sanitize_model_name(model_name):
     if not isinstance(model_name, str):
         return DEFAULT_SETTINGS['model_name']
-    if is_gguf_reference(model_name):
-        return DEFAULT_SETTINGS['model_name']
     return model_name
 
 
+def infer_model_loader_and_ctx(model_name):
+    config_map = load_model_config()
+    model_name = str(model_name or '')
+    for pattern, settings in config_map.items():
+        try:
+            if model_name and re.match(pattern, model_name, flags=re.IGNORECASE):
+                loader = settings.get('loader')
+                ctx_size = settings.get('ctx_size')
+                return loader, ctx_size
+        except re.error:
+            continue
+    if is_gguf_reference(model_name):
+        return 'llama.cpp', 8192
+    return None, None
+
+
+def resolve_model_path(model_name):
+    if not model_name:
+        return None
+    normalized_name = str(model_name).replace('\\', '/')
+    path = Path(normalized_name)
+    if path.exists():
+        return path
+    candidate = Path(MODEL_DIR) / normalized_name
+    if candidate.exists():
+        return candidate
+    if normalized_name.endswith('.gguf') or '.gguf' in normalized_name.lower():
+        exact_matches = sorted(
+            p for p in Path(MODEL_DIR).rglob(path.name)
+            if p.is_file() and p.name == path.name
+        )
+        if exact_matches:
+            return exact_matches[0]
+    if is_gguf_reference(model_name):
+        gguf_files = list(Path(MODEL_DIR).rglob("*.gguf"))
+        if len(gguf_files) == 1:
+            return gguf_files[0]
+    return None
+
+
+def select_backend(config):
+    model_name = config['model_name']
+    explicit_loader = (config.get('loader') or '').strip()
+    inferred_loader, _ = infer_model_loader_and_ctx(model_name)
+    loader = explicit_loader or inferred_loader
+    if is_gguf_reference(model_name):
+        loader = 'llama.cpp'
+    return loader or 'Transformers'
+
+
 def load_model(config):
-    global tokenizer, model, current_model_name
+    global tokenizer, model, current_model_name, current_backend
     model_name = config['model_name']
     use_quantization = config.get('use_quantization')
     use_airllm = config.get('use_airllm', 'false').lower() == 'true'
+    backend = select_backend(config)
 
-    if current_model_name == model_name and 'model' in globals() and 'tokenizer' in globals() and model is not None and tokenizer is not None:
-        # Ya está cargado el correcto, pero verifiquemos si cambió la config estructural
-        # Ignoramos cambios en vivo puros para no recargar sin botón de reinicio.
+    if (
+        current_model_name == model_name
+        and current_backend == backend
+        and model is not None
+        and (backend == 'llama.cpp' or tokenizer is not None)
+    ):
         return
-    
-    if is_gguf_reference(model_name):
-        raise OSError(
-            'Los repositorios GGUF no son compatibles con Transformers. ' 
-            'Usa un modelo compatible con Transformers como "mistralai/Mistral-7B-Instruct-v0.1" ' 
-            'o instala "llama-cpp-python"/"llama.cpp" para cargar archivos GGUF locales.'
-        )
 
-    print(f'Cargando modelo {model_name}...')
-    
+    resolved_model = resolve_model_path(model_name) or Path(model_name)
+    print(f'Cargando modelo {model_name} con backend {backend}...')
+
+    # Ruta GGUF: modelo local + llama.cpp.
+    if backend == 'llama.cpp':
+        if not LLAMA_CPP_AVAILABLE:
+            raise OSError(
+                'El backend GGUF necesita `llama-cpp-python`. '
+                'Instala la dependencia y vuelve a intentar.'
+            )
+        if not resolved_model.exists():
+            raise OSError(
+                f'No se encontró el archivo GGUF local: {resolved_model}. '
+                'Descárgalo primero en user_data/models.'
+            )
+
+        ctx_size = int(config.get('ctx_size', 8192))
+        gpu_layers = int(config.get('gpu_layers', -1))
+        print(f'Inicializando llama.cpp con ctx_size={ctx_size} y gpu_layers={gpu_layers}...')
+        model = Llama(
+            model_path=str(resolved_model),
+            n_ctx=ctx_size,
+            n_gpu_layers=gpu_layers,
+            verbose=False,
+        )
+        tokenizer = None
+        current_model_name = model_name
+        current_backend = backend
+        print(f"✅ Modelo GGUF '{model_name}' cargado correctamente.")
+        return
+
     tokenizer_model = model_name
     try:
         print(f'Intentando cargar tokenizador de {tokenizer_model}...')
@@ -231,36 +356,31 @@ def load_model(config):
             print('✓ Tokenizador cargado con use_fast=True')
         except Exception as e2:
             raise OSError(
-                'No se pudo cargar el tokenizador. ' 
-                'Verifica que el modelo exista y tenga un tokenizer compatible, ' 
-                'y que `sentencepiece`/`tiktoken` estén instalados.'
+                'No se pudo cargar el tokenizador. '
+                'Verifica que el modelo exista y tenga un tokenizer compatible.'
             ) from e2
-    
-    # === RAMA AIRLLM ===
-    use_airllm = config.get('use_airllm', 'false').lower() == 'true'
-    
+
     if use_airllm and getattr(sys.modules[__name__], 'AIRLLM_AVAILABLE', False):
         print(f'Inicializando vía AirLLM con compresión {use_quantization}...')
         comp = '4bit' if use_quantization == '4bit' else ('8bit' if use_quantization == '8bit' else None)
         try:
             model = AirAutoModel.from_pretrained(model_name, compression=comp)
             current_model_name = model_name
+            current_backend = 'airllm'
             print('✓ Modelo AirLLM cargado exitosamente.')
             return
         except Exception as e:
             print(f"Error cargando AirLLM: {e}. Fallback a normal...")
 
-    # === RAMA NORMAL TRANSFORMERS ===
-    # Configuración para VRAM limitada (MX450 con 2GB)
     model_kwargs = {
         'device_map': 'auto',
         'low_cpu_mem_usage': True,
     }
-    
+
     if use_quantization and use_quantization != 'false' and use_quantization != 'none':
         print(f'Aplicando quantización {use_quantization}...')
         from transformers import BitsAndBytesConfig
-        
+
         if use_quantization == '4bit':
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
@@ -269,56 +389,44 @@ def load_model(config):
                 bnb_4bit_compute_dtype=torch.float16,
                 llm_int8_enable_fp32_cpu_offload=True
             )
-        else:  # 8bit
+        else:
             bnb_config = BitsAndBytesConfig(
                 load_in_8bit=True,
                 load_in_8bit_skip_modules=['lm_head'],
                 llm_int8_enable_fp32_cpu_offload=True
             )
-        
+
         model_kwargs['quantization_config'] = bnb_config
     else:
-        # Sin quantización, usar float16 para ahorrar memoria
         model_kwargs['torch_dtype'] = torch.float16
-    
+
     from transformers import AutoModelForCausalLM
     print(f'Cargando modelo con config: {model_kwargs}...')
     try:
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            **model_kwargs
-        )
+        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
         current_model_name = model_name
+        current_backend = 'transformers'
     except Exception as e:
         print(f'Error al cargar modelo: {e}')
         lowered = str(e).lower()
-        if 'pytorch_model.bin' in lowered or 'model.safetensors' in lowered or is_gguf_reference(model_name):
-            raise OSError(
-                'No se encontró un checkpoint compatible. ' 
-                'Este error ocurre porque el modelo GGUF no puede cargarse con Transformers. ' 
-                'Cambia a un modelo compatible con Transformers o usa un cargador GGUF.'
-            )
         if 'bitsandbytes' in lowered or 'bnb' in lowered:
             raise OSError(
-                'La quantización falló al cargar el modelo. ' 
+                'La quantización falló al cargar el modelo. '
                 'Asegúrate de que `bitsandbytes` esté instalado y sea compatible con tu entorno.'
             )
-        # Fallback: cargar sin quantización
         if 'quantization_config' in model_kwargs:
             print('Intentando cargar sin cuantización...')
             model_kwargs.pop('quantization_config', None)
-            model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                **model_kwargs
-            )
+            model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+            current_backend = 'transformers'
         else:
             raise
-    
-    current_model_name = model_name
-    print(f"✅ Modelo '{model_name}' cargado correctamente. Métodos habilitados: Sin censura")
+
+    print(f"✅ Modelo '{model_name}' cargado correctamente. Backend: {current_backend}")
 
 
 with app.app_context():
+    ensure_default_assets()
     db.create_all()
     inspector = inspect(db.engine)
     if 'chat' in inspector.get_table_names():
@@ -465,6 +573,26 @@ Eres el Operador, el perfil del usuario que dirige la conversación y crea perso
 
 Responde como este perfil en todas las interacciones."""
     ensure_character('Operador', operador_prompt)
+
+    # Importa personajes definidos en archivos para que el proyecto tenga
+    # una capa editable estilo webui además de la DB.
+    for record in load_characters():
+        existing = Character.query.filter_by(name=record["name"]).first()
+        if existing:
+            existing.system_prompt = record["system_prompt"]
+        else:
+            db.session.add(
+                Character(
+                    name=record["name"],
+                    system_prompt=record["system_prompt"],
+                )
+            )
+
+    # Carga presets y ajustes de interfaz desde disco si existen.
+    interface_file = load_interface_settings()
+    for key, value in interface_file.items():
+        if not Setting.query.filter_by(key=key).first():
+            db.session.add(Setting(key=key, value=str(value)))
 
     def ensure_setting(key, value):
         if not Setting.query.filter_by(key=key).first():
@@ -640,11 +768,24 @@ def background_generate(app, chat_id, user_input, message_format):
             )
 
             use_airllm = getattr(model, '__class__', None) and 'AirLLM' in model.__class__.__name__ or 'airllm' in str(type(model)).lower()
+            backend = current_backend or select_backend(config)
 
             from transformers import TextStreamer
-            streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+            streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True) if tokenizer is not None else None
 
-            if use_airllm:
+            if backend == 'llama.cpp':
+                print(">> Inferencia delegada a backend GGUF local...")
+                generation = model.create_completion(
+                    prompt=full_prompt,
+                    max_tokens=config['max_length'],
+                    temperature=config['temperature'],
+                    top_p=config['top_p'],
+                    repeat_penalty=config.get('repetition_penalty', 1.1),
+                    min_p=config.get('min_p', 0.05),
+                    stop=[f"{character.name}:", "Tú:", "Usuario:"],
+                )
+                response = generation['choices'][0]['text']
+            elif use_airllm:
                 print(">> Inferencia delegada a motor AirLLM...")
                 input_tokens = tokenizer(full_prompt, return_tensors='pt', return_attention_mask=False, truncation=True, padding=False)
                 outputs = model.generate(
@@ -663,7 +804,7 @@ def background_generate(app, chat_id, user_input, message_format):
                 inputs = tokenizer(full_prompt, return_tensors='pt').to(device_target)
                 outputs = model.generate(
                     **inputs,
-                    max_new_tokens=config['max_length'], # Mejor práctica moderna
+                    max_new_tokens=config['max_length'],
                     temperature=config['temperature'],
                     top_p=config['top_p'],
                     do_sample=True,
@@ -773,6 +914,7 @@ def duplicate_character(char_id):
     )
     db.session.add(duplicate)
     db.session.commit()
+    save_character_file(duplicate.name, '', duplicate.system_prompt)
     return redirect(url_for('index'))
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -781,14 +923,18 @@ def settings_view():
     user = User.query.first()
     if request.method == 'POST':
         requested_model = request.form['model_name']
-        if is_gguf_reference(requested_model):
-            flash('Modelo GGUF no soportado. Se restauró el modelo a un valor compatible con Transformers.')
-            requested_model = DEFAULT_SETTINGS['model_name']
         set_setting('model_name', requested_model)
+        set_setting('loader', request.form.get('loader', ''))
+        set_setting('character', request.form.get('character', DEFAULT_SETTINGS['character']))
+        set_setting('preset', request.form.get('preset', DEFAULT_SETTINGS['preset']))
+        set_setting('ctx_size', request.form.get('ctx_size', '8192'))
+        set_setting('gpu_layers', request.form.get('gpu_layers', '-1'))
         set_setting('temperature', request.form['temperature'])
         set_setting('top_p', request.form['top_p'])
         set_setting('max_length', request.form['max_length'])
         set_setting('no_limit_prefix', request.form['no_limit_prefix'])
+        set_setting('use_airllm', request.form.get('use_airllm', DEFAULT_SETTINGS['use_airllm']))
+        set_setting('use_quantization', request.form.get('use_quantization', DEFAULT_SETTINGS['use_quantization']))
 
         user.name = request.form['user_name']
         user.info = json.dumps({
@@ -798,7 +944,24 @@ def settings_view():
         })
         db.session.commit()
 
-        load_model(requested_model)
+        current_interface = load_interface_settings()
+        current_interface.update({
+            'mode': request.form.get('mode', current_interface.get('mode', 'chat')),
+            'chat_style': request.form.get('chat_style', current_interface.get('chat_style', 'messenger')),
+            'enable_thinking': request.form.get('enable_thinking', 'false') == 'true',
+            'character': request.form.get('character', DEFAULT_SETTINGS['character']),
+            'preset': request.form.get('preset', DEFAULT_SETTINGS['preset']),
+            'model_name': requested_model,
+            'use_airllm': request.form.get('use_airllm', DEFAULT_SETTINGS['use_airllm']),
+            'use_quantization': request.form.get('use_quantization', DEFAULT_SETTINGS['use_quantization']),
+            'temperature': request.form['temperature'],
+            'top_p': request.form['top_p'],
+            'max_length': request.form['max_length'],
+            'no_limit_prefix': request.form['no_limit_prefix'],
+        })
+        save_interface_settings(current_interface)
+
+        load_model(get_config())
         return redirect(url_for('settings_view'))
 
     config = get_config()
@@ -807,8 +970,36 @@ def settings_view():
         'settings.html',
         config=config,
         user=user,
-        user_info=user_info
+        user_info=user_info,
+        available_characters=[item["name"] for item in load_characters()],
+        available_presets=list(load_presets().keys()),
+        available_local_models=list_local_models(),
     )
+
+
+@app.route('/download_model', methods=['POST'])
+@login_required
+def download_model():
+    repo_id = request.form.get('repo_id', '').strip()
+    file_name = request.form.get('file_name', '').strip()
+    if not repo_id or not file_name:
+        flash('Debes indicar el repo y el archivo GGUF.')
+        return redirect(url_for('settings_view'))
+
+    try:
+        downloaded = download_hf_asset(repo_id, file_name, MODEL_DIR)
+        set_setting('model_name', downloaded.name)
+        set_setting('loader', 'llama.cpp')
+        set_setting('ctx_size', '8192')
+        current_interface = load_interface_settings()
+        current_interface['model_name'] = downloaded.name
+        current_interface['loader'] = 'llama.cpp'
+        current_interface['ctx_size'] = 8192
+        save_interface_settings(current_interface)
+        flash(f'Modelo descargado: {downloaded.name}')
+    except Exception as exc:
+        flash(f'Error descargando modelo: {exc}')
+    return redirect(url_for('settings_view'))
 
 @app.route('/edit_new_character/<int:base_id>', methods=['GET', 'POST'])
 @login_required
@@ -820,6 +1011,7 @@ def edit_new_character(base_id):
         new_character = Character(name=name, system_prompt=system_prompt)
         db.session.add(new_character)
         db.session.commit()
+        save_character_file(name, '', system_prompt)
         return redirect(url_for('index'))
     return render_template('edit_new_character.html', base_character=base_character)
 
@@ -831,16 +1023,23 @@ def create_character():
     character = Character(name=name, system_prompt=system_prompt)
     db.session.add(character)
     db.session.commit()
+    save_character_file(name, '', system_prompt)
     return redirect(url_for('index'))
 
 @app.route('/edit_character/<int:char_id>', methods=['GET', 'POST'])
 @login_required
 def edit_character(char_id):
     character = Character.query.get_or_404(char_id)
+    original_name = character.name
     if request.method == 'POST':
         character.name = request.form['name']
         character.system_prompt = request.form['system_prompt']
         db.session.commit()
+        if original_name != character.name:
+            old_path = CHARACTER_DIR / f"{slugify_name(original_name)}.yaml"
+            if old_path.exists():
+                old_path.unlink()
+        save_character_file(character.name, '', character.system_prompt)
         return redirect(url_for('index'))
     return render_template('edit_character.html', character=character)
 
@@ -848,6 +1047,9 @@ def edit_character(char_id):
 @login_required
 def delete_character(char_id):
     character = Character.query.get_or_404(char_id)
+    char_path = CHARACTER_DIR / f"{slugify_name(character.name)}.yaml"
+    if char_path.exists():
+        char_path.unlink()
     db.session.delete(character)
     db.session.commit()
     return redirect(url_for('index'))

@@ -27,3 +27,9 @@ config/
 memory/
 vendor/
 tests/__pycache__/
+!user_data/models/
+!user_data/models/config-user.yaml
+user_data/models/*.gguf
+user_data/models/**/*.gguf
+user_data/models/*.bin
+user_data/models/*.safetensors

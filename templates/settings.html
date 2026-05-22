@@ -40,8 +40,30 @@
             <div class="settings-grid">
                 <div class="settings-section">
                     <h2>🧠 Parámetros del motor inferencial</h2>
-                    <label for="model_name">HuggingFace Model Repo</label>
+                    <label for="model_name">Modelo activo o repo HF</label>
                     <input type="text" id="model_name" name="model_name" value="{{ config.model_name }}" required>
+                    <p class="text-muted" style="margin-top:-0.5rem;">Puedes escribir un repo de Hugging Face o un archivo `.gguf` local dentro de `user_data/models`.</p>
+
+                    <label for="loader">Loader</label>
+                    <select id="loader" name="loader">
+                        <option value="" {% if not config.loader %}selected{% endif %}>Auto</option>
+                        <option value="Transformers" {% if config.loader == 'Transformers' %}selected{% endif %}>Transformers</option>
+                        <option value="llama.cpp" {% if config.loader == 'llama.cpp' %}selected{% endif %}>llama.cpp / GGUF</option>
+                    </select>
+
+                    <label for="preset">Preset de generación</label>
+                    <select id="preset" name="preset">
+                        {% for preset_name in available_presets %}
+                        <option value="{{ preset_name }}" {% if config.preset == preset_name %}selected{% endif %}>{{ preset_name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="character">Personaje por defecto</label>
+                    <select id="character" name="character">
+                        {% for char_name in available_characters %}
+                        <option value="{{ char_name }}" {% if config.character == char_name %}selected{% endif %}>{{ char_name }}</option>
+                        {% endfor %}
+                    </select>
 
                     <div style="display:flex; gap: 10px;">
                         <div style="flex:1">
@@ -75,6 +97,17 @@
                             </select>
                         </div>
                     </div>
+
+                    <div style="display:flex; gap: 10px;">
+                        <div style="flex:1">
+                            <label for="ctx_size">Contexto (ctx_size)</label>
+                            <input type="number" id="ctx_size" name="ctx_size" value="{{ config.ctx_size }}" required>
+                        </div>
+                        <div style="flex:1">
+                            <label for="gpu_layers">GPU Layers</label>
+                            <input type="number" id="gpu_layers" name="gpu_layers" value="{{ config.gpu_layers }}" required>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="settings-section">
@@ -104,6 +137,31 @@
                 <button type="submit">💾 Aplicar Cambios Globales</button>
             </div>
         </form>
+
+        <div class="settings-section" style="margin-top: 2rem;">
+            <h2>⬇️ Descargar GGUF desde Hugging Face</h2>
+            <form action="{{ url_for('download_model') }}" method="POST">
+                <label for="repo_id">Repo</label>
+                <input type="text" id="repo_id" name="repo_id" placeholder="DavidAU/L3.2-Rogue-Creative-Instruct-Uncensored-Abliterated-7B-GGUF" required>
+
+                <label for="file_name">File name</label>
+                <input type="text" id="file_name" name="file_name" placeholder="L3.2-Rogue-Creative-Instruct-Uncensored-Abliterated-7B-D_AU-Q4_k_m.gguf" required>
+
+                <div style="margin-top: 1rem; text-align: right;">
+                    <button type="submit">Descargar al directorio local</button>
+                </div>
+            </form>
+            {% if available_local_models %}
+            <div style="margin-top: 1rem;">
+                <label>Modelos locales detectados</label>
+                <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-muted);">
+                    {% for model_name in available_local_models %}
+                    <li>{{ model_name }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -1,0 +1,3 @@
+.*\.gguf$:
+  loader: llama.cpp
+  ctx_size: 8192

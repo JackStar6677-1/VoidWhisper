@@ -78,6 +78,27 @@ Luego solo debes hacer doble clic en el ícono de **VoidWhisper** en tu fondo de
 ### Base de Datos Centralizada
 La persistencia usa SQLite con trayectos absolutos definidos mágicamente e impulsada bajo el estándar SQLAlchemy 2.0+ (`db.session.get()`). 
 
+### Flujo tipo webui
+VoidWhisper ahora también soporta una estructura de archivos estilo `text-generation-webui` dentro de `user_data/`:
+
+- `user_data/characters/`: personajes YAML editables
+- `user_data/presets/`: presets de generación YAML
+- `user_data/models/config-user.yaml`: reglas locales por modelo, incluido `GGUF`
+- `user_data/settings.yaml`: valores por defecto del entorno
+
+Desde **Configuración** puedes:
+
+- elegir personaje y preset por defecto
+- cambiar el loader
+- cargar modelos `GGUF` locales con `llama.cpp`
+- descargar un archivo `GGUF` de Hugging Face directamente al directorio local
+
+Para activar el backend GGUF, instala la dependencia opcional:
+
+```bash
+pip install -r requirements-gguf.txt
+```
+
 ### Gestión de Operadores & Identidades
 Desde la Web UI puedes:
 1. Crear "Plantillas" de Sistema para inyectar personalidades maestras.

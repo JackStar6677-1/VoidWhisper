@@ -1,0 +1,5 @@
+temperature: 0.76
+top_p: 0.92
+min_p: 0.05
+repetition_penalty: 1.2
+max_length: 300
