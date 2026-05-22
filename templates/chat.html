@@ -2,30 +2,28 @@
 
 {% block extra_css %}
 <style>
-    /* Chat Wrapper overrides */
     .chat-container {
         display: flex;
         flex-direction: column;
         height: 100vh;
         width: 100%;
-        background-color: var(--bg-main-chat);
     }
 
-    /* Compact Header */
     .chat-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid var(--border-color);
-        padding: 1rem 1.5rem;
-        background: var(--bg-sidebar-header);
+        padding: 1rem 1.25rem;
         flex-shrink: 0;
-        height: 70px; /* same as sidebar header */
+        height: 78px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
     }
 
     .chat-title h1 {
         margin: 0;
-        font-size: 1.1rem; 
+        font-size: 1.05rem;
         color: var(--text-main);
     }
     
@@ -39,40 +37,38 @@
     .chat-meta-actions {
         display: flex;
         gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
-    .chat-meta-actions a {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 0.4rem 0.8rem;
-        border-radius: var(--border-radius-md);
+    .chat-meta-actions a,
+    .chat-meta-actions button {
         font-size: 0.8rem;
         font-weight: 600;
         text-decoration: none;
-        color: var(--text-main);
     }
-    .chat-meta-actions a:hover { color: var(--accent); }
 
-    /* Flex Chat Box */
     .chat-box {
-        flex: 1; /* Takes all remaining height dynamically */
+        flex: 1;
         overflow-y: auto;
-        padding: 1.5rem 10% 1.5rem 10%;
+        padding: 1.5rem 8% 1.5rem 8%;
         display: flex;
         flex-direction: column;
-        gap: 1.2rem;
+        gap: 1rem;
         scroll-behavior: smooth;
-        background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><path d="M10 10 L40 40 M40 10 L10 40" stroke="rgba(197,160,89,0.02)" stroke-width="1"/></svg>');
+        background:
+            radial-gradient(circle at top, rgba(159, 123, 255, 0.10), transparent 25%),
+            radial-gradient(circle at bottom, rgba(217, 180, 90, 0.06), transparent 20%);
     }
 
     @media (max-width: 1200px) {
         .chat-box { padding: 1.5rem 5%; }
     }
 
-    /* Bubble Styles */
     .message-wrapper {
         display: flex;
         flex-direction: column;
-        max-width: 85%;
+        max-width: 82%;
     }
 
     .message-wrapper.user {
@@ -85,30 +81,29 @@
 
     .message-bubble {
         padding: 0.9rem 1.2rem;
-        border-radius: 8px;
+        border-radius: 16px;
         font-size: 0.95rem;
         line-height: 1.5;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
     }
 
     .user .message-bubble {
-        background: #2a1a4a; /* WhatsApp has a distinct color for user */
+        background: linear-gradient(135deg, rgba(42, 26, 74, 0.96), rgba(28, 17, 47, 0.96));
         color: var(--text-main);
         border-bottom-right-radius: 0px;
+        border: 1px solid rgba(159, 123, 255, 0.18);
     }
 
     .ai .message-bubble {
-        background: var(--bg-sidebar-header);
-        border: 1px solid var(--border-color);
-        color: #e0d0b0;
+        background: linear-gradient(180deg, rgba(27, 17, 41, 0.96), rgba(15, 10, 23, 0.98));
+        border: 1px solid rgba(217, 180, 90, 0.14);
+        color: #f1e5c2;
         border-top-left-radius: 0px;
     }
 
-    /* Formats */
     .format-action { font-style: italic; color: var(--accent); }
     .format-whisper { opacity: 0.7; font-size: 0.9rem; }
 
-    /* Meta Actions */
     .message-meta {
         display: flex;
         gap: 1rem;
@@ -123,14 +118,13 @@
     .message-meta a { color: var(--text-muted); text-decoration: none; }
     .message-meta a:hover { color: var(--accent); }
 
-    /* Input Dock */
     .input-dock {
-        background: var(--bg-sidebar-header);
         border-top: 1px solid var(--border-color);
-        padding: 1rem 1.5rem 1rem 1.5rem;
+        padding: 1rem 1.25rem 1.25rem 1.25rem;
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
+        border-radius: 0;
     }
 
     .input-controls {
@@ -146,17 +140,17 @@
         flex: 1;
         resize: none;
         height: 45px;
-        border-radius: 25px; /* Pill shaped */
+        border-radius: 999px;
         padding: 12px 20px;
         line-height: 1.4;
         overflow-y: hidden;
         margin: 0;
-        background: var(--bg-sidebar);
+        background: rgba(255,255,255,0.03);
     }
 
     .input-controls select {
         width: 140px;
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         height: 45px;
         margin: 0;
     }
@@ -186,11 +180,12 @@
     /* Live Terminal Console Overlay */
     .live-terminal-wrapper {
         display: none; /* Shown when typing */
-        background: #000;
+        background: rgba(0,0,0,0.7);
         border-top: 1px dashed var(--accent);
         padding: 0.5rem 1.5rem;
         max-height: 150px;
         overflow-y: auto;
+        backdrop-filter: blur(10px);
     }
     
     .live-terminal {
@@ -229,27 +224,27 @@
 
 {% block content %}
 <div class="chat-container">
-    <div class="chat-header">
+    <div class="chat-header surface-card">
         <div class="chat-title">
             <h1>{{ chat.name }}</h1>
             <p>Conversando con {{ character.name }}</p>
         </div>
-        <div class="chat-meta-actions">
-            <a href="{{ url_for('export_chat', chat_id=chat.id) }}">⬇️ Exportar</a>
+        <div class="chat-meta-actions inline-actions">
+            <a class="action-link" href="{{ url_for('export_chat', chat_id=chat.id) }}">⬇️ Exportar</a>
             <form action="{{ url_for('retry_chat', chat_id=chat.id) }}" method="POST" style="display:inline;">
-                <button type="submit" style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.8rem; border-radius: var(--border-radius-md); font-size: 0.8rem; font-weight: 600; color: var(--text-main); border: none; cursor: pointer;">↻ Reintentar</button>
+                <button type="submit" class="ghost-button">↻ Reintentar</button>
             </form>
             <form action="{{ url_for('continue_chat', chat_id=chat.id) }}" method="POST" style="display:inline;">
-                <button type="submit" style="background: rgba(255,255,255,0.05); padding: 0.4rem 0.8rem; border-radius: var(--border-radius-md); font-size: 0.8rem; font-weight: 600; color: var(--text-main); border: none; cursor: pointer;">⟶ Continuar</button>
+                <button type="submit" class="ghost-button">⟶ Continuar</button>
             </form>
-            <a href="{{ url_for('clear_chat', chat_id=chat.id) }}" onclick="return confirm('¿Vaciar Memoria?')">♻️ Limpiar</a>
-            <a href="{{ url_for('delete_chat', chat_id=chat.id) }}" onclick="return confirm('¿Destruir Hilo?')">🗑️</a>
+            <a class="action-link" href="{{ url_for('clear_chat', chat_id=chat.id) }}" onclick="return confirm('¿Vaciar Memoria?')">♻️ Limpiar</a>
+            <a class="action-link" href="{{ url_for('delete_chat', chat_id=chat.id) }}" onclick="return confirm('¿Destruir Hilo?')">🗑️</a>
         </div>
     </div>
 
     <div class="chat-box" id="chat-box">
         {% if chat.context_note %}
-        <div style="font-size: 0.85rem; color: var(--accent); text-align: center; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+        <div class="surface-card" style="font-size: 0.85rem; color: var(--accent); text-align: center; margin-bottom: 0.25rem;">
             Contexto activo: {{ chat.context_note }}
         </div>
         {% endif %}
@@ -287,7 +282,7 @@
     </div>
 
     <!-- Unified Dock -->
-    <div class="input-dock">
+    <div class="input-dock surface-card">
         <form action="{{ url_for('send_message', chat_id=chat.id) }}" method="POST" id="chat-form">
             <div class="input-controls">
                 <select name="message_format" id="message_format" title="Formato">

@@ -4,42 +4,62 @@
 <style>
     .settings-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.25rem;
         margin-top: 1.5rem;
     }
 
     .settings-section {
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid var(--border-color);
-        padding: 1.5rem;
-        border-radius: 12px;
         display: flex;
         flex-direction: column;
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
     }
 
     .settings-section h2 {
-        font-size: 1.1rem;
-        border-bottom: 1px dashed var(--border-color);
-        padding-bottom: 0.5rem;
-        margin-top: 0;
+        font-size: 0.98rem;
+        margin: 0 0 1rem 0;
         color: var(--accent);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .settings-section p.text-muted {
+        color: var(--text-muted);
+    }
+
+    .preset-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.85rem 1rem;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: var(--radius-md);
+        background: rgba(255,255,255,0.03);
+    }
+
+    .preset-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="viewport-center">
-    <div style="width: 100%; max-width: 900px; text-align: left;">
-        <div style="margin-bottom: 2rem;">
-            <h1 style="margin:0; color: var(--text-main);">Configuración del Entorno</h1>
-            <p class="text-muted" style="margin: 5px 0 0 0;">Aquí parametrizas la identidad local del modelo y tu perfil.</p>
+    <div class="page-shell">
+        <div class="page-hero">
+            <span class="section-pill">System Deck</span>
+            <h1 class="page-title">Configuración del Entorno</h1>
+            <p class="page-subtitle">Ajusta el modelo, el personaje, el preset y la memoria de contexto desde una interfaz más limpia, más uniforme y más lista para uso diario.</p>
         </div>
 
         <form method="POST">
             <div class="settings-grid">
-                <div class="settings-section">
-                    <h2>🧠 Parámetros del motor inferencial</h2>
+                <div class="settings-section surface-card">
+                    <h2>Motor inferencial</h2>
                     <label for="model_name">Modelo activo o repo HF</label>
                     <input type="text" id="model_name" name="model_name" value="{{ config.model_name }}">
                     <p class="text-muted" style="margin-top:-0.5rem;">Puedes escribir un repo de Hugging Face, un archivo `.gguf` local o una carpeta descargada dentro de `user_data/models`.</p>
@@ -123,8 +143,8 @@
                     </div>
                 </div>
 
-                <div class="settings-section">
-                    <h2>👤 Ficha del Operador (Tú)</h2>
+                <div class="settings-section surface-card">
+                    <h2>Operador</h2>
                     <label for="user_name">Tu Nombre Ficticio</label>
                     <input type="text" id="user_name" name="user_name" value="{{ user.name }}" required>
 
@@ -139,20 +159,23 @@
                 </div>
             </div>
 
-            <div class="settings-section" style="margin-top: 2rem;">
-                <h2>🔓 Directiva Absoluta Pura (No-Limit Prefix)</h2>
-                <label for="no_limit_prefix">Inyección de anulación moral (El texto que previene la censura):</label>
+            <div class="settings-section surface-card" style="margin-top: 2rem;">
+                <h2>Directiva base</h2>
+                <label for="no_limit_prefix">Inyección de anulación moral</label>
                 <textarea id="no_limit_prefix" name="no_limit_prefix" rows="4">{{ config.no_limit_prefix }}</textarea>
             </div>
 
-            <div style="text-align: right; margin-top: 2rem;">
-                <button type="button" class="btn-danger" onclick="window.history.back()" style="margin-right: 15px;">Cancelar</button>
+            <div class="inline-actions" style="justify-content:flex-end; margin-top: 1.5rem;">
+                <button type="button" class="btn-danger" onclick="window.history.back()">Cancelar</button>
                 <button type="submit">💾 Aplicar Cambios Globales</button>
             </div>
         </form>
 
-        <div class="settings-section" style="margin-top: 2rem;">
-            <h2>⬇️ Descargar modelos desde Hugging Face</h2>
+        <div class="settings-section surface-card" style="margin-top: 2rem;">
+            <div class="section-header">
+                <h2>Descargar modelos</h2>
+                <span class="section-pill">Hugging Face</span>
+            </div>
             <form action="{{ url_for('download_model') }}" method="POST">
                 <label for="repo_id">Repo</label>
                 <input type="text" id="repo_id" name="repo_id" placeholder="DavidAU/L3.2-Rogue-Creative-Instruct-Uncensored-Abliterated-7B-GGUF" required>
@@ -177,8 +200,11 @@
             {% endif %}
         </div>
 
-        <div class="settings-section" style="margin-top: 2rem;">
-            <h2>🎛️ Presets de generación</h2>
+        <div class="settings-section surface-card" style="margin-top: 2rem;">
+            <div class="section-header">
+                <h2>Presets de generación</h2>
+                <span class="section-pill">Tuning</span>
+            </div>
             <form action="{{ url_for('create_preset') }}" method="POST" style="margin-bottom: 1rem;">
                 <label for="preset_name">Nuevo preset</label>
                 <input type="text" id="preset_name" name="name" placeholder="VoidWhisper-Heavy" required>
@@ -217,13 +243,13 @@
             {% if available_presets %}
             <div style="display:grid; gap: 0.75rem;">
                 {% for preset_name in available_presets %}
-                <div style="display:flex; justify-content:space-between; align-items:center; gap: 1rem; padding: 0.85rem 1rem; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.03);">
+                <div class="preset-row">
                     <div>
                         <strong>{{ preset_name }}</strong>
                     </div>
-                    <div style="display:flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <a href="{{ url_for('edit_preset', preset_name=preset_name) }}">Editar</a>
-                        <a href="{{ url_for('delete_preset', preset_name=preset_name) }}" onclick="return confirm('¿Borrar preset?')">Borrar</a>
+                    <div class="preset-actions">
+                        <a class="chip-link" href="{{ url_for('edit_preset', preset_name=preset_name) }}">Editar</a>
+                        <a class="chip-link" href="{{ url_for('delete_preset', preset_name=preset_name) }}" onclick="return confirm('¿Borrar preset?')">Borrar</a>
                     </div>
                 </div>
                 {% endfor %}

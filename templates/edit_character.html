@@ -1,18 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Editar Personaje</h1>
-<p>
-    <a href="{{ url_for('export_character', char_id=character.id) }}">Exportar personaje</a>
-</p>
-        <form method="POST">
-            <label for="name">Nombre:</label>
-            <input type="text" id="name" name="name" value="{{ character.name }}" required>
+<div class="viewport-center">
+    <div class="page-shell" style="max-width: 900px;">
+        <div class="page-hero">
+            <span class="section-pill">Persona</span>
+            <h1 class="page-title">Editar Personaje</h1>
+            <p class="page-subtitle">Ajusta la identidad, exporta su definición o vuelve al panel principal sin perder consistencia visual.</p>
+        </div>
 
-            <label for="system_prompt">System Prompt:</label>
-            <textarea id="system_prompt" name="system_prompt" rows="10" required>{{ character.system_prompt }}</textarea>
+        <div class="surface-card">
+            <div class="inline-actions" style="justify-content:flex-end; margin-bottom: 1rem;">
+                <a class="action-link" href="{{ url_for('export_character', char_id=character.id) }}">Exportar personaje</a>
+            </div>
 
-            <button type="submit">Guardar Cambios</button>
-        </form>
-        <br>
-        <a href="{{ url_for('index') }}">Volver</a>
+            <form method="POST">
+                <label for="name">Nombre</label>
+                <input type="text" id="name" name="name" value="{{ character.name }}" required>
+
+                <label for="system_prompt">System Prompt</label>
+                <textarea id="system_prompt" name="system_prompt" rows="10" required>{{ character.system_prompt }}</textarea>
+
+                <div class="inline-actions" style="justify-content:flex-end; margin-top: 1rem;">
+                    <a class="action-link" href="{{ url_for('index') }}">Volver</a>
+                    <button type="submit">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
