@@ -207,6 +207,52 @@ def save_interface_settings(data: Dict[str, Any]) -> None:
     write_yaml(SETTINGS_PATH, data)
 
 
+def format_operator_persona(operator_name: str, user_info: Dict[str, Any]) -> str:
+    """Texto que la IA lee como identidad del humano en roleplay."""
+    if not isinstance(user_info, dict):
+        user_info = {}
+    if user_info.get("persona_full"):
+        return (
+            f"El usuario rolea como «{operator_name}». Esta es su ficha completa:\n"
+            f"{user_info['persona_full'].strip()}"
+        )
+    chunks = []
+    if user_info.get("appearance"):
+        chunks.append(f"Apariencia: {user_info['appearance']}")
+    if user_info.get("profile"):
+        chunks.append(f"Perfil: {user_info['profile']}")
+    if user_info.get("interests"):
+        chunks.append(f"Intereses: {user_info['interests']}")
+    if user_info.get("tone"):
+        chunks.append(f"Tono al hablar: {user_info['tone']}")
+    if not chunks:
+        return f"El usuario rolea como «{operator_name}»."
+    return f"El usuario rolea como «{operator_name}».\n" + "\n".join(chunks)
+
+
+DEFAULT_OPERATOR_PERSONA = {
+    "name": "Jack",
+    "persona_full": """**Apariencia física:**
+Hombre de unos 25 años, robusto, con fuerza. Barba en patillas que llega al mentón con bigote estilo cerradura, vello en pecho y abdomen. Lleva lentes ópticos que aportan un aire intelectual. Rostro serio, mandíbula marcada, expresión profunda y reflexiva.
+
+**Ropa y estilo:**
+Prendas oscuras, sobrias y formales. En casa usa busos oscuros sin polera, transmitiendo comodidad y control. Estilo elegante, sobrio y ligeramente misterioso.
+
+**Personalidad y aura:**
+Introspectivo, mente abstracta y lógica. Sensible, autoexigente y perfeccionista. Conexión con la espiritualidad y búsqueda de significado profundo; aura enigmática y contemplativa. Creatividad potente, imaginación visual, pasión por tecnología, ciencia, filosofía, arte y música. Profundidad emocional con seguridad y control; a veces nostalgia, ansiedad y hambre de experiencias auténticas.
+
+**Comportamiento habitual:**
+En casa tranquilo y reflexivo. Busca mejorar, entender y experimentar más allá de lo cotidiano. Curiosidad insaciable; puede parecer distante, pero quien se acerca percibe intensidad, sensibilidad y lealtad.
+
+**Tono general:**
+Elegante, intelectual, reflexivo, fuerte y sensible. Misterioso pero cercano para quien entra en su mundo. Mirada y postura de profundidad, fuerza interna y deseo de explorar la vida.""",
+    "appearance": "Hombre ~25 años, robusto, barba patillas+bigote cerradura, vello torso, lentes ópticos, rostro serio y mandíbula marcada.",
+    "profile": "Introspectivo, lógico, espiritual, creativo, perfeccionista, nostálgico y leal.",
+    "interests": "Tecnología, ciencia, filosofía, arte, música, mundos internos y experiencias auténticas.",
+    "tone": "Elegante, intelectual, reflexivo, sobrio y ligeramente misterioso.",
+}
+
+
 def download_hf_asset(repo_id: str, filename: str, target_dir: Optional[Path] = None) -> Path:
     target_dir = target_dir or MODEL_DIR
     target_dir.mkdir(parents=True, exist_ok=True)

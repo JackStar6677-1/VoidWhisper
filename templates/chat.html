@@ -1,24 +1,41 @@
 {% extends "base.html" %}
 
+{% block mobile_title %}{{ chat.name }}{% endblock %}
+
 {% block extra_css %}
 <style>
     .chat-container {
         display: flex;
         flex-direction: column;
-        height: 100vh;
+        flex: 1;
+        min-height: 0;
         width: 100%;
+        height: 100%;
     }
 
     .chat-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 1rem 1.25rem;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
         flex-shrink: 0;
-        height: 78px;
+        min-height: 72px;
         border-radius: 0;
         border-left: none;
         border-right: none;
+    }
+
+    .chat-header-main {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .chat-header .chat-title {
+        min-width: 0;
     }
 
     .chat-title h1 {
@@ -50,7 +67,9 @@
 
     .chat-box {
         flex: 1;
+        min-height: 0;
         overflow-y: auto;
+        overflow-x: hidden;
         padding: 1.5rem 8% 1.5rem 8%;
         display: flex;
         flex-direction: column;
@@ -63,6 +82,27 @@
 
     @media (max-width: 1200px) {
         .chat-box { padding: 1.5rem 5%; }
+    }
+
+    @media (max-width: 960px) {
+        .chat-box { padding: 1rem 0.85rem; }
+        .message-wrapper { max-width: 92%; }
+        .chat-meta-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .input-controls {
+            flex-wrap: wrap;
+        }
+        .input-controls select {
+            width: 100%;
+        }
+        .input-controls textarea {
+            width: 100%;
+        }
+        .input-controls button {
+            margin-left: auto;
+        }
     }
 
     .message-wrapper {
@@ -225,9 +265,12 @@
 {% block content %}
 <div class="chat-container">
     <div class="chat-header surface-card">
-        <div class="chat-title">
-            <h1>{{ chat.name }}</h1>
-            <p>Conversando con {{ character.name }}</p>
+        <div class="chat-header-main">
+            <button type="button" class="icon-button" id="sidebar-toggle" aria-label="Abrir menú">☰</button>
+            <div class="chat-title">
+                <h1>{{ chat.name }}</h1>
+                <p>Conversando con {{ character.name }}</p>
+            </div>
         </div>
         <div class="chat-meta-actions inline-actions">
             <a class="action-link" href="{{ url_for('export_chat', chat_id=chat.id) }}">⬇️ Exportar</a>

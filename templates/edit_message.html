@@ -1,24 +1,29 @@
 {% extends "base.html" %}
+{% block mobile_title %}Editar mensaje{% endblock %}
 {% block content %}
-<h1>Editar Mensaje</h1>
-        <div class="note">
-            <p><strong>Chat:</strong> {{ chat.name }}</p>
-            <p><strong>Mensaje actual:</strong></p>
-            <p>{{ message.content }}</p>
+<div class="viewport-center">
+    <div class="page-shell" style="max-width: 760px;">
+        <div class="surface-card">
+            <h1 class="page-title" style="font-size: 1.5rem;">Editar Mensaje</h1>
+            <p style="color: var(--text-muted);"><strong>Chat:</strong> {{ chat.name }}</p>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;"><strong>Mensaje actual:</strong> {{ message.content }}</p>
+            <form method="POST">
+                <label for="content">Texto del mensaje</label>
+                <textarea id="content" name="content" rows="8" required>{{ message.content }}</textarea>
+
+                <label for="message_format">Formato</label>
+                <select id="message_format" name="message_format">
+                    <option value="normal" {% if message.format == 'normal' %}selected{% endif %}>Normal</option>
+                    <option value="action" {% if message.format == 'action' %}selected{% endif %}>*Acción*</option>
+                    <option value="whisper" {% if message.format == 'whisper' %}selected{% endif %}>_Susurro_</option>
+                </select>
+
+                <div class="inline-actions" style="justify-content: flex-end; margin-top: 1rem;">
+                    <a class="action-link" href="{{ url_for('chat_view', chat_id=chat.id) }}">← Volver al chat</a>
+                    <button type="submit">Guardar</button>
+                </div>
+            </form>
         </div>
-        <form method="POST">
-            <label for="content">Texto del mensaje</label>
-            <textarea id="content" name="content" rows="6" required>{{ message.content }}</textarea>
-
-            <label for="message_format">Formato</label>
-            <select id="message_format" name="message_format">
-                <option value="normal" {% if message.format == 'normal' %}selected{% endif %}>Normal</option>
-                <option value="action" {% if message.format == 'action' %}selected{% endif %}>*Acción*</option>
-                <option value="whisper" {% if message.format == 'whisper' %}selected{% endif %}>_Susurro_</option>
-            </select>
-
-            <button type="submit">Guardar</button>
-        </form>
-        <br>
-        <a href="{{ url_for('chat_view', chat_id=chat.id) }}">← Volver al chat</a>
+    </div>
+</div>
 {% endblock %}

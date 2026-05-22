@@ -33,6 +33,11 @@
         }
 
         * { box-sizing: border-box; }
+
+        html {
+            height: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
         
         body {
             font-family: 'Inter', sans-serif;
@@ -45,9 +50,24 @@
                 linear-gradient(180deg, #0a0612 0%, #07050d 100%);
             color: var(--text-main);
             display: flex;
-            min-height: 100vh;
-            width: 100vw;
-            overflow: hidden; /* No scroll outside of layout */
+            flex-direction: column;
+            min-height: 100dvh;
+            height: 100dvh;
+            width: 100%;
+            max-width: 100vw;
+            overflow: hidden;
+        }
+
+        body.sidebar-open {
+            overflow: hidden;
+        }
+
+        .app-shell {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            position: relative;
         }
 
         body::before {
@@ -66,7 +86,8 @@
         /* ========= THE SIDEBAR (LEFT PANE) ========= */
         .sidebar {
             width: var(--sidebar-width);
-            height: 100vh;
+            height: 100%;
+            max-height: 100dvh;
             background:
                 linear-gradient(180deg, rgba(17, 11, 26, 0.98), rgba(8, 5, 14, 0.98)),
                 radial-gradient(circle at top, rgba(159, 123, 255, 0.15), transparent 46%);
@@ -74,6 +95,62 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
+            z-index: 1200;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .icon-button {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-size: 1.2rem;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .icon-button:hover {
+            background: rgba(159, 123, 255, 0.14);
+        }
+
+        .mobile-topbar {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(11, 8, 18, 0.96);
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .mobile-topbar-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--accent);
         }
 
         .sidebar-header {
@@ -82,9 +159,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 70px;
+            gap: 0.5rem;
+            min-height: 70px;
             flex-shrink: 0;
             border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header .sidebar-brand {
+            flex: 1;
+            min-width: 0;
         }
 
         .sidebar-brand {
@@ -184,7 +267,7 @@
         /* ========= THE MAIN VIEWPORT (RIGHT PANE) ========= */
         .main-viewport {
             flex: 1;
-            min-height: 100vh;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             background-color: var(--bg-main-chat);
@@ -192,16 +275,20 @@
             overflow-y: auto;
             overflow-x: hidden;
             min-width: 0;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+
+        body.page-chat .main-viewport {
+            overflow: hidden;
         }
 
         /* Generic Forms (Auth/Settings) inside Viewport */
         .viewport-center {
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: flex-start;
-            min-height: 100%;
-            padding: 2rem;
+            display: block;
+            width: 100%;
+            min-height: min-content;
+            padding: 1rem;
         }
         
         .card-panel,
@@ -226,9 +313,9 @@
         .page-shell {
             width: 100%;
             max-width: 1180px;
-            padding: 2rem;
+            padding: clamp(1rem, 3vw, 2rem);
             margin: 0 auto;
-            padding-bottom: 4rem;
+            padding-bottom: max(3rem, env(safe-area-inset-bottom, 0px) + 2rem);
         }
 
         .page-hero {
@@ -382,24 +469,86 @@
             margin-bottom: 0.5rem;
         }
 
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100vw;
-                display: {% if request.endpoint == 'chat_view' %}none{% else %}flex{% endif %};
+        @media (max-width: 960px) {
+            :root {
+                --sidebar-width: min(88vw, 320px);
             }
+
+            .icon-button,
+            .mobile-topbar {
+                display: flex;
+            }
+
+            .sidebar-backdrop {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-105%);
+                transition: transform 0.25s ease;
+                box-shadow: 12px 0 40px rgba(0, 0, 0, 0.45);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
             .main-viewport {
-                display: {% if request.endpoint == 'chat_view' %}flex{% else %}none{% endif %};
+                width: 100%;
+            }
+
+            .page-title {
+                font-size: 1.55rem;
+            }
+
+            .section-grid,
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar-actions a {
+                margin-left: 0.65rem;
+                font-size: 0.82rem;
+            }
+
+            input, select, textarea, button, .btn {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .card-panel {
+                padding: 1.25rem;
+            }
+
+            .inline-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .inline-actions button,
+            .inline-actions .action-link,
+            .inline-actions a {
+                width: 100%;
+                text-align: center;
             }
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% if request.endpoint == 'chat_view' %}page-chat{% else %}page-scroll{% endif %}{% endblock %}">
 
     {% if current_user.is_authenticated %}
+    <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
+    <div class="app-shell">
     <!-- SIDEBAR (Only visible when logged in) -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="app-sidebar">
         <div class="sidebar-header">
+            <button type="button" class="icon-button" id="sidebar-close" aria-label="Cerrar menú">✕</button>
             <a href="{{ url_for('index') }}" class="sidebar-brand">VoidWhisper</a>
             <div class="sidebar-actions">
                 <a href="{{ url_for('index') }}" title="Nuevo Chat / Inicio">＋ Nuevo</a>
@@ -454,6 +603,12 @@
 
     <!-- MAIN PANE -->
     <main class="main-viewport" id="main-viewport">
+        {% if current_user.is_authenticated and request.endpoint != 'chat_view' %}
+        <div class="mobile-topbar">
+            <button type="button" class="icon-button" id="sidebar-toggle" aria-label="Abrir menú">☰</button>
+            <span class="mobile-topbar-title">{% block mobile_title %}VoidWhisper{% endblock %}</span>
+        </div>
+        {% endif %}
         <div class="flash-messages">
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
@@ -467,7 +622,39 @@
         {% block content %}
         {% endblock %}
     </main>
+    {% if current_user.is_authenticated %}
+    </div>
+    {% endif %}
     
     {% block extra_js %}{% endblock %}
+    <script>
+        (function () {
+            const sidebar = document.getElementById('app-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            const toggle = document.getElementById('sidebar-toggle');
+            const closeBtn = document.getElementById('sidebar-close');
+            if (!sidebar) return;
+
+            const setOpen = (open) => {
+                sidebar.classList.toggle('open', open);
+                document.body.classList.toggle('sidebar-open', open);
+                if (backdrop) backdrop.classList.toggle('visible', open);
+            };
+
+            toggle?.addEventListener('click', () => setOpen(!sidebar.classList.contains('open')));
+            closeBtn?.addEventListener('click', () => setOpen(false));
+            backdrop?.addEventListener('click', () => setOpen(false));
+
+            sidebar.querySelectorAll('a').forEach((link) => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 960) setOpen(false);
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 960) setOpen(false);
+            });
+        })();
+    </script>
 </body>
 </html>

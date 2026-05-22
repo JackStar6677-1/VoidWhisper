@@ -16,12 +16,14 @@ from pathlib import Path
 
 from voidwhisper_store import (
     CHARACTER_DIR,
+    DEFAULT_OPERATOR_PERSONA,
     MODEL_CONFIG_PATH,
     MODEL_DIR,
     PRESET_DIR,
     SETTINGS_PATH,
     download_hf_asset,
     ensure_default_assets,
+    format_operator_persona,
     load_characters,
     load_interface_settings,
     load_model_config,
@@ -122,6 +124,30 @@ except ImportError:
 current_model_name = None
 current_backend = None
 GENERATION_TASKS = {}
+
+
+def _prime_windows_cuda_dll_paths() -> None:
+    """En Windows, llama.cpp necesita cudart y otras DLL que PyTorch ya trae."""
+    if os.name != 'nt':
+        return
+    try:
+        import torch
+        venv_lib = Path(sys.executable).resolve().parent.parent / 'Lib' / 'site-packages' / 'llama_cpp' / 'lib'
+        search_dirs = [
+            Path(torch.__file__).resolve().parent / 'lib',
+            venv_lib,
+        ]
+        for folder in search_dirs:
+            if not folder.is_dir():
+                continue
+            folder_str = str(folder)
+            os.add_dll_directory(folder_str)
+            os.environ['PATH'] = folder_str + os.pathsep + os.environ.get('PATH', '')
+    except Exception as exc:
+        print(f'[WARN] No se pudieron enlazar DLL CUDA para llama.cpp: {exc}')
+
+
+_prime_windows_cuda_dll_paths()
 
 try:
     from llama_cpp import Llama
@@ -521,11 +547,13 @@ with app.app_context():
 
     if not User.query.first():
         user = User(
-            name='Admin',
+            name=DEFAULT_OPERATOR_PERSONA['name'],
             info=json.dumps({
-                'profile': 'Administrador del sistema',
-                'interests': 'IA, desarrollo, automatización',
-                'tone': 'Profesional y directo'
+                'persona_full': DEFAULT_OPERATOR_PERSONA['persona_full'],
+                'appearance': DEFAULT_OPERATOR_PERSONA['appearance'],
+                'profile': DEFAULT_OPERATOR_PERSONA['profile'],
+                'interests': DEFAULT_OPERATOR_PERSONA['interests'],
+                'tone': DEFAULT_OPERATOR_PERSONA['tone'],
             })
         )
         db.session.add(user)
@@ -762,7 +790,35 @@ def reset_password(token):
 def index():
     chats = Chat.query.order_by(Chat.id.desc()).all()
     characters = Character.query.order_by(Character.name).all()
-    return render_template('index.html', chats=chats, characters=characters)
+    operator = User.query.first()
+    user_info = json.loads(operator.info) if operator else {}
+    return render_template(
+        'index.html',
+        chats=chats,
+        characters=characters,
+        operator=operator,
+        user_info=user_info,
+    )
+
+
+@app.route('/update_operator', methods=['POST'])
+@login_required
+def update_operator():
+    operator = User.query.first()
+    if not operator:
+        flash('No hay perfil de operador configurado.')
+        return redirect(url_for('index'))
+    operator.name = request.form.get('operator_name', operator.name).strip() or operator.name
+    operator.info = json.dumps({
+        'persona_full': request.form.get('persona_full', '').strip(),
+        'appearance': request.form.get('appearance', '').strip(),
+        'profile': request.form.get('profile', '').strip(),
+        'interests': request.form.get('interests', '').strip(),
+        'tone': request.form.get('tone', '').strip(),
+    })
+    db.session.commit()
+    flash(f'Perfil de roleplay guardado: {operator.name}')
+    return redirect(url_for('index'))
 
 @app.route('/create_chat', methods=['POST'])
 @login_required
@@ -935,8 +991,7 @@ def background_generate(app, chat_id, user_input, message_format):
             
             operator = User.query.first()
             user_info = json.loads(operator.info)
-            info_lines = [f"{key}: {value}" for key, value in user_info.items()]
-            user_info_text = '\n'.join(info_lines)
+            user_info_text = format_operator_persona(operator.name, user_info)
             history_lines = []
             for msg in messages:
                 speaker = 'Tú' if msg['role'] == 'user' else character.name
@@ -1130,9 +1185,11 @@ def settings_view():
 
         user.name = request.form.get('user_name', user.name)
         user.info = json.dumps({
+            'persona_full': request.form.get('persona_full', user_info.get('persona_full', '')),
+            'appearance': request.form.get('appearance', user_info.get('appearance', '')),
             'profile': request.form.get('user_profile', user_info.get('profile', '')),
             'interests': request.form.get('user_interests', user_info.get('interests', '')),
-            'tone': request.form.get('user_tone', user_info.get('tone', ''))
+            'tone': request.form.get('user_tone', user_info.get('tone', '')),
         })
         db.session.commit()
 

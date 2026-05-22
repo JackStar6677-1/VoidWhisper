@@ -1,44 +1,71 @@
 {% extends "base.html" %}
 
+{% block mobile_title %}Inicio{% endblock %}
+
 {% block extra_css %}
 <style>
     .welcome-container {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        height: 100%;
+        justify-content: flex-start;
+        min-height: min-content;
         text-align: center;
-        padding: 2rem;
+        padding: clamp(1rem, 4vw, 2rem);
+        padding-bottom: 3rem;
         background:
             radial-gradient(circle at top, rgba(159, 123, 255, 0.18), transparent 30%),
             radial-gradient(circle at bottom, rgba(217, 180, 90, 0.12), transparent 28%);
     }
     .welcome-logo {
-        width: 120px;
-        height: 120px;
+        width: 96px;
+        height: 96px;
         background: linear-gradient(135deg, rgba(159, 123, 255, 0.25), rgba(217, 180, 90, 0.22));
         border: 1px solid rgba(217, 180, 90, 0.35);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 3rem;
-        margin-bottom: 2rem;
+        font-size: 2.4rem;
+        margin-bottom: 1.25rem;
         box-shadow: 0 0 48px rgba(159, 123, 255, 0.2);
     }
     .welcome-title {
-        font-size: 2.35rem;
+        font-size: clamp(1.6rem, 4vw, 2.35rem);
         font-weight: 700;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
         color: var(--text-main);
     }
     .welcome-subtitle {
         color: var(--text-muted);
-        font-size: 1rem;
-        max-width: 400px;
-        margin-bottom: 3rem;
-        line-height: 1.5;
+        font-size: 0.95rem;
+        max-width: 52ch;
+        margin: 0 auto 1.5rem;
+        line-height: 1.55;
+        text-align: center;
+    }
+
+    .role-legend {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.75rem;
+        width: 100%;
+        max-width: 1080px;
+        margin-bottom: 1.25rem;
+        text-align: left;
+    }
+    .role-legend .legend-item {
+        padding: 0.85rem 1rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        background: rgba(255,255,255,0.03);
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+    .role-legend strong {
+        color: var(--accent);
+        display: block;
+        margin-bottom: 0.25rem;
     }
 
     .tools-grid {
@@ -47,6 +74,7 @@
         gap: 1.25rem;
         width: 100%;
         max-width: 1080px;
+        text-align: left;
     }
 
     .tool-card {
@@ -54,21 +82,62 @@
         border: 1px solid var(--border-color);
         padding: 1.5rem;
         border-radius: var(--radius-lg);
-        text-align: left;
         box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+    }
+    .tool-card--you {
+        border-color: rgba(217, 180, 90, 0.35);
+    }
+    .tool-card--ai {
+        border-color: rgba(159, 123, 255, 0.35);
+    }
+    .tool-card--forge {
+        border-color: rgba(99, 217, 143, 0.28);
     }
     .tool-card h3 {
         color: var(--accent);
-        margin-bottom: 1rem;
-        margin-top: 0;
+        margin: 0 0 0.35rem 0;
         font-size: 1.05rem;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+    }
+    .tool-card .card-hint {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        margin: 0 0 1rem 0;
+        line-height: 1.45;
         border-bottom: 1px solid rgba(255,255,255,0.06);
-        padding-bottom: 0.7rem;
+        padding-bottom: 0.75rem;
+    }
+    .tool-card label {
+        margin-top: 0.35rem;
     }
 
-    @media (max-width: 768px) {
+    .char-list {
+        margin: 0.75rem 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+    .char-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 0.7rem;
+        border-radius: var(--radius-sm);
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.05);
+        font-size: 0.88rem;
+    }
+    .char-list a {
+        color: var(--accent-2);
+        text-decoration: none;
+        font-size: 0.8rem;
+    }
+
+    @media (max-width: 900px) {
         .tools-grid { grid-template-columns: 1fr; }
     }
 </style>
@@ -78,75 +147,128 @@
 <div class="welcome-container">
     <div class="welcome-logo">🌌</div>
     <h1 class="welcome-title">VoidWhisper</h1>
-    <p class="welcome-subtitle">Todo lo importante vive en un solo lugar: chatea, crea personajes, importa, exporta y abre un modelo local sin salir del proyecto.</p>
+    <p class="welcome-subtitle">
+        Hay <strong>dos roles</strong> en cada chat: <em>tú</em> (operador) y la <em>IA</em> (personaje con quien hablas).
+        Configúralos por separado antes de abrir un hilo.
+    </p>
+
+    <div class="role-legend">
+        <div class="legend-item">
+            <strong>Tú → Operador</strong>
+            Quién eres en el roleplay. La IA lee esta ficha en cada mensaje (apariencia, tono, personalidad).
+        </div>
+        <div class="legend-item">
+            <strong>IA → Personaje</strong>
+            Con quién conversas (Saori, VoidWhisper, etc.). Tiene su propio system prompt y responde como ese personaje.
+        </div>
+    </div>
 
     <div class="tools-grid">
-        <!-- New Chat Form -->
-        <div class="tool-card surface-card">
-            <h3>NUEVO CHAT</h3>
+        <!-- TU PERSONAJE (operador) -->
+        <div class="tool-card tool-card--you surface-card">
+            <h3>1 · TU PERSONAJE</h3>
+            <p class="card-hint">Define <strong>quién eres tú</strong> en la historia. Esto no es la IA: es la identidad que interpretas al escribir «Tú:».</p>
+            <form action="{{ url_for('update_operator') }}" method="POST">
+                <label for="operator_name">Nombre en el roleplay</label>
+                <input type="text" id="operator_name" name="operator_name" value="{{ operator.name if operator else 'Jack' }}" required>
+
+                <label for="persona_full">Ficha completa (apariencia, ropa, personalidad, tono)</label>
+                <textarea id="persona_full" name="persona_full" rows="10" required placeholder="Describe quién eres tú en la escena...">{{ user_info.persona_full or '' }}</textarea>
+
+                <details style="margin-bottom: 0.75rem;">
+                    <summary style="cursor:pointer; color: var(--text-muted); font-size: 0.85rem;">Campos cortos (opcional, para Ajustes)</summary>
+                    <label for="appearance">Apariencia (resumen)</label>
+                    <input type="text" id="appearance" name="appearance" value="{{ user_info.appearance or '' }}">
+                    <label for="profile">Perfil</label>
+                    <input type="text" id="profile" name="profile" value="{{ user_info.profile or '' }}">
+                    <label for="interests">Intereses</label>
+                    <input type="text" id="interests" name="interests" value="{{ user_info.interests or '' }}">
+                    <label for="tone">Tono</label>
+                    <input type="text" id="tone" name="tone" value="{{ user_info.tone or '' }}">
+                </details>
+
+                <button type="submit" style="width:100%">Guardar mi personaje</button>
+            </form>
+        </div>
+
+        <!-- NUEVO CHAT -->
+        <div class="tool-card tool-card--ai surface-card">
+            <h3>2 · NUEVO CHAT</h3>
+            <p class="card-hint">Elige <strong>con qué personaje IA</strong> quieres hablar. Esa entidad responderá en el chat; tú sigues siendo el operador de la columna izquierda.</p>
             <form action="{{ url_for('create_chat') }}" method="POST">
-                <label>Nombre del Hilo</label>
-                <input type="text" name="name" placeholder="Ej: Episodio 3" required>
-                
-                <label>Personaje a Invocar</label>
-                <select name="character_id" required>
+                <label for="chat_name">Nombre del hilo</label>
+                <input type="text" id="chat_name" name="name" placeholder="Ej: Noche en el estudio" required>
+
+                <label for="character_id">Personaje IA (con quien hablas)</label>
+                <select id="character_id" name="character_id" required>
                     {% for char in global_characters %}
                     <option value="{{ char.id }}">{{ char.name }}</option>
                     {% endfor %}
                 </select>
-                
-                <label>Contexto (Opcional)</label>
-                <textarea name="context_note" rows="2" placeholder="Regla inicial..."></textarea>
-                
-                <button type="submit" style="width:100%">Crear e Iniciar Chat</button>
+
+                <label for="context_note">Contexto de escena (opcional)</label>
+                <textarea id="context_note" name="context_note" rows="2" placeholder="Lugar, época, situación inicial..."></textarea>
+
+                <button type="submit" style="width:100%">Crear e iniciar chat</button>
             </form>
+
+            {% if global_characters %}
+            <p class="card-hint" style="margin-top:1rem; margin-bottom:0.35rem; border:none; padding:0;">Personajes IA disponibles:</p>
+            <ul class="char-list">
+                {% for char in global_characters %}
+                <li>
+                    <span>{{ char.name }}</span>
+                    <a href="{{ url_for('edit_character', char_id=char.id) }}">Editar</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
         </div>
 
-        <!-- New Character Form -->
-        <div class="tool-card surface-card">
-            <h3>FORJAR IDENTIDAD</h3>
+        <!-- CREAR PERSONAJE IA -->
+        <div class="tool-card tool-card--forge surface-card" style="grid-column: 1 / -1;">
+            <h3>3 · CREAR PERSONAJE IA</h3>
+            <p class="card-hint">
+                Aquí <strong>forjas un personaje nuevo para la IA</strong> (no tu operador). También puedes editarlos en el menú lateral «Tus Personajes de IA» o en ⚙️ Ajustes.
+            </p>
             <form action="{{ url_for('create_character') }}" method="POST">
-                
-                <div style="display:flex; gap: 10px; margin-bottom: 10px;">
-                    <select id="base_character" onchange="loadPrompt()" style="margin-bottom:0;">
-                        <option value="">Base en blanco</option>
+                <div style="display:flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <select id="base_character" onchange="loadPrompt()" style="margin-bottom:0; flex:1; min-width: 180px;">
+                        <option value="">Plantilla en blanco</option>
                         {% for char in global_characters %}
-                        <option value="{{ char.id }}">{{ char.name }}</option>
+                        <option value="{{ char.id }}">Clonar: {{ char.name }}</option>
                         {% endfor %}
                     </select>
-                    <button type="button" onclick="editFromBase()" style="white-space: nowrap; padding: 0.8rem;">Clonar</button>
+                    <button type="button" onclick="editFromBase()" style="white-space: nowrap; padding: 0.8rem;">Abrir clon en editor</button>
                 </div>
 
-                <label>Nombre Identidad</label>
-                <input type="text" name="name" placeholder="Ej: Saori" required>
-                
-                <label>System Prompt</label>
-                <textarea id="system_prompt" name="system_prompt" rows="3" required placeholder="Límites, personalidad..."></textarea>
-                
-                <button type="submit" style="width:100%">Despertar Personaje</button>
+                <label for="ai_char_name">Nombre del personaje IA</label>
+                <input type="text" id="ai_char_name" name="name" placeholder="Ej: Saori, VoidWhisper..." required>
+
+                <label for="system_prompt">System prompt del personaje IA</label>
+                <textarea id="system_prompt" name="system_prompt" rows="6" required placeholder="Personalidad, límites, estilo de habla de la IA..."></textarea>
+
+                <button type="submit" style="width:100%">Crear personaje IA</button>
             </form>
         </div>
 
         <div class="tool-card surface-card" style="grid-column: 1 / -1;">
-            <h3>RECUPERAR CHAT</h3>
-            <form action="{{ url_for('import_chat') }}" method="POST" enctype="multipart/form-data">
-                <label>Cargar exportación JSON</label>
-                <input type="file" name="chat_file" accept=".json,application/json" required>
-                <button type="submit" style="width:100%">Importar chat</button>
-            </form>
-        </div>
-
-        <div class="tool-card surface-card" style="grid-column: 1 / -1;">
-            <h3>RECUPERAR PERSONAJE</h3>
-            <form action="{{ url_for('import_character') }}" method="POST" enctype="multipart/form-data">
-                <label>Cargar personaje JSON</label>
-                <input type="file" name="character_file" accept=".json,application/json" required>
-                <button type="submit" style="width:100%">Importar personaje</button>
-            </form>
+            <h3>Importar / exportar</h3>
+            <div class="section-grid" style="margin-top: 0;">
+                <form action="{{ url_for('import_chat') }}" method="POST" enctype="multipart/form-data">
+                    <label>Recuperar chat (JSON)</label>
+                    <input type="file" name="chat_file" accept=".json,application/json" required>
+                    <button type="submit" style="width:100%; margin-top: 0.5rem;">Importar chat</button>
+                </form>
+                <form action="{{ url_for('import_character') }}" method="POST" enctype="multipart/form-data">
+                    <label>Recuperar personaje IA (JSON)</label>
+                    <input type="file" name="character_file" accept=".json,application/json" required>
+                    <button type="submit" style="width:100%; margin-top: 0.5rem;">Importar personaje IA</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -170,7 +292,7 @@
         if (selectedId) {
             window.location.href = "{{ url_for('edit_new_character', base_id=0) }}".replace('0', selectedId);
         } else {
-            alert('Selecciona base en el selector para clonar.');
+            alert('Elige un personaje IA en el desplegable para clonarlo en el editor.');
         }
     }
 </script>

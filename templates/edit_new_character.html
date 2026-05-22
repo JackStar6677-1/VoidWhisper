@@ -1,19 +1,26 @@
 {% extends "base.html" %}
+{% block mobile_title %}Nuevo personaje{% endblock %}
 {% block content %}
-<h1>Crear Personaje desde "{{ base_character.name }}"</h1>
-        <div class="note">
-            <p><strong>Base seleccionada:</strong> {{ base_character.name }}</p>
-            <p>Edita el nombre y el prompt del sistema para crear un nuevo personaje basado en este. Puedes modificar cualquier aspecto: apariencia, personalidad, historia, etc.</p>
+<div class="viewport-center">
+    <div class="page-shell" style="max-width: 900px;">
+        <div class="surface-card">
+            <h1 class="page-title" style="font-size: 1.5rem;">Crear desde "{{ base_character.name }}"</h1>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                Edita el nombre y el prompt del sistema. Puedes modificar apariencia, personalidad e historia.
+            </p>
+            <form method="POST">
+                <label for="name">Nombre del nuevo personaje</label>
+                <input type="text" id="name" name="name" value="{{ base_character.name }} (Editado)" required>
+
+                <label for="system_prompt">System Prompt</label>
+                <textarea id="system_prompt" name="system_prompt" rows="12" required>{{ base_character.system_prompt }}</textarea>
+
+                <div class="inline-actions" style="justify-content: flex-end; margin-top: 1rem;">
+                    <a class="action-link" href="{{ url_for('index') }}">← Volver</a>
+                    <button type="submit">Crear personaje</button>
+                </div>
+            </form>
         </div>
-        <form method="POST">
-            <label for="name">Nombre del nuevo personaje</label>
-            <input type="text" id="name" name="name" value="{{ base_character.name }} (Editado)" required>
-
-            <label for="system_prompt">System Prompt (editado)</label>
-            <textarea id="system_prompt" name="system_prompt" required>{{ base_character.system_prompt }}</textarea>
-
-            <button type="submit">Crear Personaje</button>
-        </form>
-        <br>
-        <a href="{{ url_for('index') }}">← Volver sin crear</a>
+    </div>
+</div>
 {% endblock %}
