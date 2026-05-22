@@ -3,10 +3,13 @@ chat_style: messenger
 enable_thinking: false
 character: VoidWhisper
 preset: VoidWhisper-Heavy
-model_name: ''
+model_name: Goekdeniz-Guelmez__Josiefied-Qwen2.5-0.5B-Instruct-abliterated-v1
+loader: Transformers
 use_airllm: 'false'
 use_quantization: 'false'
 temperature: '0.76'
 top_p: '0.92'
-max_length: '60'
+max_length: '24'
+ctx_size: '8192'
+gpu_layers: '-1'
 no_limit_prefix: ''

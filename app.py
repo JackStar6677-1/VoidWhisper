@@ -77,12 +77,14 @@ class LogCatcher:
     def write(self, text):
         if not text:
             return
+        if isinstance(text, bytes):
+            text = text.decode(getattr(self.original_stdout, "encoding", None) or "utf-8", errors="replace")
         safe_text = text
         encoding = getattr(self.original_stdout, "encoding", None) or "utf-8"
         try:
             safe_text = text.encode(encoding, errors="replace").decode(encoding, errors="replace")
         except Exception:
-            safe_text = text.encode("utf-8", errors="replace").decode("utf-8", errors="replace")
+            safe_text = str(text).encode("utf-8", errors="replace").decode("utf-8", errors="replace")
         try:
             self.original_stdout.write(safe_text)
         except UnicodeEncodeError:
