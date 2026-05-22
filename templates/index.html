@@ -123,6 +123,15 @@
                 <button type="submit" style="width:100%">Importar chat</button>
             </form>
         </div>
+
+        <div class="tool-card" style="grid-column: 1 / -1;">
+            <h3>RECUPERAR PERSONAJE</h3>
+            <form action="{{ url_for('import_character') }}" method="POST" enctype="multipart/form-data">
+                <label>Cargar personaje JSON</label>
+                <input type="file" name="character_file" accept=".json,application/json" required>
+                <button type="submit" style="width:100%">Importar personaje</button>
+            </form>
+        </div>
     </div>
 </div>
 

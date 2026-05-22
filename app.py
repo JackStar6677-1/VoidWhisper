@@ -28,6 +28,8 @@ from voidwhisper_store import (
     load_presets,
     list_local_models,
     delete_preset_file,
+    delete_character_file,
+    get_character_path,
     get_preset_path,
     save_character_file,
     save_interface_settings,
@@ -1308,11 +1310,56 @@ def edit_character(char_id):
 @login_required
 def delete_character(char_id):
     character = Character.query.get_or_404(char_id)
-    char_path = CHARACTER_DIR / f"{slugify_name(character.name)}.yaml"
-    if char_path.exists():
-        char_path.unlink()
+    delete_character_file(character.name)
     db.session.delete(character)
     db.session.commit()
+    return redirect(url_for('index'))
+
+
+@app.route('/export_character/<int:char_id>')
+@login_required
+def export_character(char_id):
+    character = Character.query.get_or_404(char_id)
+    payload = {
+        'name': character.name,
+        'greeting': '',
+        'context': character.system_prompt,
+    }
+    buffer = BytesIO(json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8'))
+    buffer.seek(0)
+    filename = f"{slugify_name(character.name)}.json"
+    return send_file(buffer, mimetype='application/json', as_attachment=True, download_name=filename)
+
+
+@app.route('/import_character', methods=['POST'])
+@login_required
+def import_character():
+    uploaded = request.files.get('character_file')
+    if not uploaded or not uploaded.filename:
+        flash('Selecciona un archivo JSON de personaje.')
+        return redirect(url_for('index'))
+
+    try:
+        payload = json.loads(uploaded.read().decode('utf-8'))
+        name = (payload.get('name') or Path(uploaded.filename).stem).strip()
+        context = payload.get('context', '').strip()
+        greeting = payload.get('greeting', '').strip()
+        if not name or not context:
+            raise OSError('El archivo no trae nombre o contexto válido.')
+
+        existing = Character.query.filter_by(name=name).first()
+        if existing:
+            existing.system_prompt = context
+            db.session.commit()
+        else:
+            character = Character(name=name, system_prompt=context)
+            db.session.add(character)
+            db.session.commit()
+
+        save_character_file(name, greeting, context)
+        flash(f'Personaje importado: {name}')
+    except Exception as exc:
+        flash(f'No se pudo importar el personaje: {exc}')
     return redirect(url_for('index'))
 
 @app.route('/api/logs')

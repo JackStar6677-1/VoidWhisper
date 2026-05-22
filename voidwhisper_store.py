@@ -172,6 +172,16 @@ def save_character_file(name: str, greeting: str, context: str) -> Path:
     return path
 
 
+def delete_character_file(name: str) -> None:
+    path = CHARACTER_DIR / f"{slugify_name(name)}.yaml"
+    if path.exists():
+        path.unlink()
+
+
+def get_character_path(name: str) -> Path:
+    return CHARACTER_DIR / f"{slugify_name(name)}.yaml"
+
+
 def save_preset_file(name: str, data: Dict[str, Any]) -> Path:
     filename = f"{slugify_name(name)}.yaml"
     path = PRESET_DIR / filename

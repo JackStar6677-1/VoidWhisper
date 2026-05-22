@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Editar Personaje</h1>
+<p>
+    <a href="{{ url_for('export_character', char_id=character.id) }}">Exportar personaje</a>
+</p>
         <form method="POST">
             <label for="name">Nombre:</label>
             <input type="text" id="name" name="name" value="{{ character.name }}" required>

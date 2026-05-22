@@ -13,6 +13,7 @@
 - Backend híbrido: `Transformers`, `AirLLM` y `llama.cpp` cuando toca.
 - Configuración persistente en `user_data/`.
 - Exportación e importación de chats.
+- Exportación e importación de personajes.
 - Reintento y continuación de respuestas desde la vista de conversación.
 - Editor de presets integrado.
 
@@ -139,6 +140,8 @@ Desde el panel principal también puedes:
 
 - exportar un chat a JSON
 - importar un chat exportado
+- exportar un personaje a JSON
+- importar un personaje desde JSON
 - reintentar la última respuesta de la IA
 - continuar la generación desde el último contexto
 
