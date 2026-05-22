@@ -44,6 +44,21 @@
         gap: 0.5rem;
         flex-wrap: wrap;
     }
+
+    .log-console {
+        margin-top: 0.75rem;
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(0,0,0,0.28);
+        color: #9ef7a5;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        max-height: 260px;
+        overflow: auto;
+        white-space: pre-wrap;
+        padding: 0.9rem 1rem;
+    }
 </style>
 {% endblock %}
 
@@ -64,17 +79,22 @@
                     <input type="text" id="model_name" name="model_name" value="{{ config.model_name }}">
                     <p class="text-muted" style="margin-top:-0.5rem;">Puedes escribir un repo de Hugging Face, un archivo `.gguf` local o una carpeta descargada dentro de `user_data/models`.</p>
 
-                    {% if available_local_models %}
                     <label for="local_model">Modelos locales detectados</label>
                     <select id="local_model" name="local_model" style="margin-bottom: 0.5rem;">
                         <option value="">-- Selecciona uno --</option>
+                        {% if config.model_name and config.model_name not in available_local_models %}
+                        <option value="{{ config.model_name }}" selected>{{ config.model_name }} (actual)</option>
+                        {% endif %}
                         {% for model_name in available_local_models %}
                         <option value="{{ model_name }}" {% if config.model_name == model_name %}selected{% endif %}>{{ model_name }}</option>
                         {% endfor %}
                     </select>
+                    {% if available_local_models %}
                     <div style="display:flex; justify-content:flex-end; margin-bottom: 0.5rem;">
                         <button type="submit" formaction="{{ url_for('use_local_model') }}" formmethod="POST">Usar modelo local</button>
                     </div>
+                    {% else %}
+                    <p class="text-muted" style="margin-top:-0.3rem;">No hay modelos locales indexados todavía. Descarga uno más abajo o escribe una ruta/repositorio manualmente arriba.</p>
                     {% endif %}
 
                     <label for="loader">Loader</label>
@@ -256,6 +276,35 @@
             </div>
             {% endif %}
         </div>
+
+        <div class="settings-section surface-card" style="margin-top: 2rem;">
+            <div class="section-header">
+                <h2>Registro de errores</h2>
+                <span class="section-pill">Live log</span>
+            </div>
+            <p class="text-muted" style="margin-top:0;">Se guarda en archivo local y también se refresca desde la sesión activa para ver dónde falla la app.</p>
+            <pre class="log-console" id="error-log-box">Cargando registros...</pre>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function refreshErrorLogs() {
+        const box = document.getElementById('error-log-box');
+        if (!box) return;
+        try {
+            const resp = await fetch('/api/logs');
+            const data = await resp.json();
+            const lines = data.logs || [];
+            const logFile = data.log_file || '';
+            box.textContent = (lines.length ? lines.join('\n') : 'Sin errores recientes.') + (logFile ? `\n\nArchivo: ${logFile}` : '');
+        } catch (err) {
+            box.textContent = 'No se pudieron cargar los registros.';
+        }
+    }
+    refreshErrorLogs();
+    setInterval(refreshErrorLogs, 4000);
+</script>
 {% endblock %}

@@ -38,6 +38,8 @@ from voidwhisper_store import (
 )
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+LOG_FILE_PATH = os.path.join(LOG_DIR, 'voidwhisper.log')
 VENDORED_AIRLLM_DIR = os.path.join(BASE_DIR, 'vendor', 'VoidAirLLM', 'air_llm')
 AIRLLM_AVAILABLE = False
 AIRLLM_IMPORT_SOURCE = None
@@ -70,6 +72,7 @@ class LogCatcher:
         self.original_stderr = sys.stderr
         self.logs = deque(maxlen=200)
         self.lock = threading.Lock()
+        os.makedirs(LOG_DIR, exist_ok=True)
     
     def write(self, text):
         if not text:
@@ -88,8 +91,15 @@ class LogCatcher:
             else:
                 self.original_stdout.write(safe_text.encode("ascii", errors="replace").decode("ascii"))
         if text.strip():
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            log_line = f'[{timestamp}] {text.strip()}'
             with self.lock:
                 self.logs.append(text.strip())
+                try:
+                    with open(LOG_FILE_PATH, 'a', encoding='utf-8', errors='replace') as handle:
+                        handle.write(log_line + '\n')
+                except Exception:
+                    pass
                 
     def flush(self):
         try:
@@ -1166,14 +1176,21 @@ def use_local_model():
         return redirect(url_for('settings_view'))
 
     set_setting('model_name', selected_model)
+    selected_path = Path(selected_model)
+    inferred_loader = 'llama.cpp' if selected_model.lower().endswith('.gguf') or local_model_has_gguf(selected_path) else ''
+    if inferred_loader:
+        set_setting('loader', inferred_loader)
     current_interface = load_interface_settings()
     current_interface['model_name'] = selected_model
+    if inferred_loader:
+        current_interface['loader'] = inferred_loader
     save_interface_settings(current_interface)
 
     try:
         load_model(get_config())
         flash(f'Modelo activo: {selected_model}')
     except Exception as exc:
+        print(f'[ERROR] No se pudo cargar el modelo local {selected_model}: {exc}')
         flash(f'No se pudo cargar el modelo seleccionado: {exc}')
     return redirect(url_for('settings_view'))
 
@@ -1379,11 +1396,24 @@ def import_character():
         flash(f'No se pudo importar el personaje: {exc}')
     return redirect(url_for('index'))
 
+def read_recent_log_lines(limit=200):
+    try:
+        if not os.path.exists(LOG_FILE_PATH):
+            return []
+        with open(LOG_FILE_PATH, 'r', encoding='utf-8', errors='replace') as handle:
+            lines = handle.read().splitlines()
+        return lines[-limit:]
+    except Exception:
+        return []
+
 @app.route('/api/logs')
 @login_required
 def get_logs():
     with global_log_catcher.lock:
-        return jsonify({'logs': list(global_log_catcher.logs)})
+        logs = read_recent_log_lines()
+        if not logs:
+            logs = list(global_log_catcher.logs)
+        return jsonify({'logs': logs, 'log_file': LOG_FILE_PATH})
 
 if __name__ == '__main__':
     # def open_browser():

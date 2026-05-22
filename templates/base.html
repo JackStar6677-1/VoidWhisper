@@ -45,7 +45,7 @@
                 linear-gradient(180deg, #0a0612 0%, #07050d 100%);
             color: var(--text-main);
             display: flex;
-            height: 100vh;
+            min-height: 100vh;
             width: 100vw;
             overflow: hidden; /* No scroll outside of layout */
         }
@@ -184,22 +184,24 @@
         /* ========= THE MAIN VIEWPORT (RIGHT PANE) ========= */
         .main-viewport {
             flex: 1;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             background-color: var(--bg-main-chat);
             position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-width: 0;
         }
 
         /* Generic Forms (Auth/Settings) inside Viewport */
         .viewport-center {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
+            align-items: stretch;
+            justify-content: flex-start;
+            min-height: 100%;
             padding: 2rem;
-            overflow-y: auto;
         }
         
         .card-panel,
@@ -226,6 +228,7 @@
             max-width: 1180px;
             padding: 2rem;
             margin: 0 auto;
+            padding-bottom: 4rem;
         }
 
         .page-hero {
@@ -367,6 +370,7 @@
             z-index: 9999;
             width: 80%;
             max-width: 600px;
+            pointer-events: none;
         }
         .flash {
             background: linear-gradient(135deg, rgba(217, 180, 90, 0.92), rgba(159, 123, 255, 0.92));
