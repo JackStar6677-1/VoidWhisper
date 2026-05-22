@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 420" role="img" aria-labelledby="title desc">
+  <title id="title">VoidWhisper</title>
+  <desc id="desc">Dark galactic banner with purple and gold gradients for the VoidWhisper project.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07060d"/>
+      <stop offset="50%" stop-color="#12081f"/>
+      <stop offset="100%" stop-color="#050308"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#7d3cff" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#4a1d7a" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0b0713" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f5d77a"/>
+      <stop offset="45%" stop-color="#cf9f2b"/>
+      <stop offset="100%" stop-color="#fff2be"/>
+    </linearGradient>
+    <linearGradient id="subGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d8c6ff"/>
+      <stop offset="100%" stop-color="#9b7cff"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0.62  0 1 0 0 0.33  0 0 1 0 1  0 0 0 0.8 0" result="glowColor"/>
+      <feMerge>
+        <feMergeNode in="glowColor"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+    <pattern id="stars" width="160" height="160" patternUnits="userSpaceOnUse">
+      <circle cx="18" cy="26" r="1.3" fill="#f5e8b0" opacity="0.75"/>
+      <circle cx="108" cy="38" r="1.1" fill="#d9c6ff" opacity="0.6"/>
+      <circle cx="74" cy="92" r="0.9" fill="#ffffff" opacity="0.5"/>
+      <circle cx="138" cy="118" r="1.2" fill="#cf9f2b" opacity="0.65"/>
+      <circle cx="40" cy="136" r="0.8" fill="#ffffff" opacity="0.4"/>
+      <circle cx="28" cy="106" r="0.7" fill="#b18cff" opacity="0.45"/>
+      <circle cx="124" cy="78" r="0.8" fill="#ffffff" opacity="0.35"/>
+    </pattern>
+  </defs>
+
+  <rect width="1400" height="420" fill="url(#bg)"/>
+  <rect width="1400" height="420" fill="url(#stars)" opacity="0.42"/>
+  <ellipse cx="700" cy="210" rx="420" ry="180" fill="url(#glow)"/>
+
+  <g filter="url(#softGlow)">
+    <path d="M230 305c58-95 152-126 224-92 36 17 63 50 80 93 14 36 34 57 72 67 40 11 84 2 123-24 47-31 86-82 109-147 18-51 52-80 104-93 61-15 132 9 199 68"
+          fill="none" stroke="#8a5bff" stroke-width="8" stroke-linecap="round" stroke-opacity="0.42"/>
+    <path d="M212 295c60-102 162-136 240-100 41 19 70 55 88 102 15 39 37 61 77 71 42 11 89 2 131-26 51-33 92-88 117-158 20-56 56-88 113-102 67-16 144 10 217 75"
+          fill="none" stroke="#f0cb73" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.65"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <circle cx="1042" cy="122" r="52" fill="#d7b25a" opacity="0.95"/>
+    <circle cx="1042" cy="122" r="66" fill="none" stroke="#f8e9a6" stroke-width="7" stroke-opacity="0.48"/>
+    <ellipse cx="1042" cy="126" rx="118" ry="26" fill="none" stroke="#8a5bff" stroke-width="6" stroke-opacity="0.55"/>
+    <ellipse cx="1042" cy="126" rx="118" ry="26" fill="none" stroke="#f4d680" stroke-width="2" stroke-opacity="0.5"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="120" y="82" width="1160" height="256" rx="28" fill="rgba(8, 7, 15, 0.48)" stroke="rgba(240, 204, 116, 0.22)" stroke-width="1.5"/>
+    <rect x="140" y="102" width="1120" height="216" rx="22" fill="rgba(18, 10, 32, 0.72)" stroke="rgba(138, 91, 255, 0.24)" stroke-width="1"/>
+  </g>
+
+  <text x="178" y="188" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="78" font-weight="800" fill="url(#titleGrad)" letter-spacing="2.5">VOIDWHISPER</text>
+  <text x="180" y="230" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="26" font-weight="500" fill="url(#subGrad)" letter-spacing="0.6">
+    Local AI core for roleplay, chat, GGUF loading and editable personas
+  </text>
+  <text x="180" y="274" font-family="Consolas, monospace" font-size="18" fill="#e9ddff" opacity="0.92">
+    Dark UI · Purple / Gold palette · Offline-first · Hugging Face downloads · webui-style assets
+  </text>
+
+  <g opacity="0.95">
+    <rect x="1008" y="248" width="226" height="46" rx="23" fill="rgba(245, 215, 122, 0.1)" stroke="rgba(245, 215, 122, 0.42)"/>
+    <text x="1121" y="278" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffe89b">Galactic local stack</text>
+  </g>
+</svg>

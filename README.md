@@ -1,111 +1,189 @@
-# VoidWhisper - The Uncensored Core
+# VoidWhisper
 
-**VoidWhisper** es una interfaz local de Inteligencia Artificial diseñada desde cero para correr nativamente en tu entorno privado ofreciendo rol y chat textual sin filtros. Con enfoque en estéticas oscuras premium (estilo Whatsapp-Glassmorphism), alta portabilidad, y optimización arquitectónica estricta para hardware limitadísimo (e.g., 2GB VRAM).
+![VoidWhisper banner](assets/voidwhisper-hero.svg)
 
----
+**VoidWhisper** es una interfaz local de IA pensada para chat, roleplay, personajes editables y carga de modelos desde tu propio entorno. La idea es simple: una base oscura, elegante y potente, con un flujo tipo webui pero integrada en un proyecto propio.
 
-## ✨ Características Premium Frontend
-El sistema incluye una interfaz gráfica moderna puramente orquestada en HTML/Vanilla CSS optimizada para inmersión rápida.
-- **Glassmorphism UI**: Interfaz de "Una Sola Página" (SPA-like) con Sidebar permanente, efectos de cristal y sombras sutiles.
-- **Live Terminal (LogCatcher)**: Monitoreo in-game. Puedes abrir una terminal emergente desde el navegador que "hackea" e intercepta `stdout/stderr` para ver en tiempo real cómo tu GPU carga el modelo.
-- **Generación Asíncrona Robusta**: En lugar de bloquear tu conexión web esperando 10 minutos a que responda un modelo (generando desconexiones `ERR_CONNECTION_RESET`), VoidWhisper despacha hilos fantasma de Python (`threading.Thread`) y lanza peticiones silenciosas `fetch()` de JavaScript, manteniendo al navegador intacto indiferentemente del castigo de VRAM en backend.
-- **Renderizado de Emojis Nativo**: Parche inyectado de "Noto Color Emoji" en caso de que Windows borre sus fuentes dinámicas interrumpiendo emotes en tu interfaz.
+## Lo esencial
 
----
+- Interfaz local con estética galáctica, oscura y cuidada.
+- Soporte para personajes YAML editables.
+- Presets de generación separados del personaje.
+- Descarga directa de modelos GGUF desde Hugging Face.
+- Backend híbrido: `Transformers`, `AirLLM` y `llama.cpp` cuando toca.
+- Configuración persistente en `user_data/`.
 
-## 🧠 Motores Híbridos & Memoria Exhausta
+## Vista General
 
-El sistema ha sido refinado para no ahogar tu computadora y ahora posee **Dos Motores Inferenciales Conmutables en Vivo**:
+```mermaid
+flowchart LR
+    U[Jack / Operador] --> UI[VoidWhisper Web UI]
+    UI --> C[Personajes YAML]
+    UI --> P[Presets YAML]
+    UI --> M[Config de modelos]
+    UI --> D[Descarga Hugging Face]
+    D --> L[user_data/models/*.gguf]
+    L --> B[llama.cpp]
+    UI --> T[Transformers]
+    UI --> A[AirLLM]
+    B --> R[Respuesta local]
+    T --> R
+    A --> R
+```
 
-### 1. Motor Estándar (Transformers + BitsAndBytes)
-Usa `AutoModelForCausalLM` mapeado directamente al dispositivo.
-- Soporta **4-Bit Quantization** nativa y Auto CPU-Offload para hardware con poca memoria (requiere 4.5GB+ VRAM compartida para 7B).
+## Arquitectura
 
-### 2. Motor AirLLM (Hardware Bypass)
-Si tus restricciones son absolutas (ej. MX450 / 2GB VRAM pura sin swapping suficiente), puedes activar el **Motor AirLLM** desde Configuración.
-- Emplea **paginación en bloques**: Fractura un modelo 7B en tu disco duro (SSD) y carga la inferencia *Capa por Capa* hacia la memoria RAM, eliminando por completo las limitaciones de VRAM. Lentitud esperable a cambio de no crashear con falta de CUDA Memory extrema.
+```mermaid
+flowchart TB
+    subgraph Frontend
+        F1[Templates HTML]
+        F2[Settings / Chat / Characters]
+    end
 
-> **Modelo por defecto actual**: `DavidAU/Llama-3.2-3B-Instruct-heretic-ablitered-uncensored`
-> Se ha escalado a este modelo arquitectónico de 3B para garantizar una inferencia 100% cruda, rápida e impecable en computadoras de Low-End (2GB a 4GB VRAM).
+    subgraph Core
+        C1[app.py]
+        C2[voidwhisper_store.py]
+        C3[SQLite + SQLAlchemy]
+    end
 
----
+    subgraph Data
+        D1[user_data/settings.yaml]
+        D2[user_data/characters/*.yaml]
+        D3[user_data/presets/*.yaml]
+        D4[user_data/models/config-user.yaml]
+        D5[user_data/models/*.gguf]
+    end
 
-## ⚡ Escalabilidad Informática (RTX 4060, 4080, 4090)
+    subgraph Runtime
+        R1[Transformers]
+        R2[AirLLM]
+        R3[llama.cpp]
+    end
 
-Si clonas este repositorio en una estación de trabajo potente (por ejemplo una RTX 4060 con **8 GB de VRAM** o superior):
-1. **AirLLM es innecesario**: Ve a *Configuración* y desactiva el motor AirLLM. Un modelo de 7B-8B cuantizado en 4-bits apenas consume ~4.5 GB de VRAM, por lo que cargará entero instantáneamente.
-2. **Carga Única y Memoria Global**: Tras enviar tu primer mensaje, la gráfica demorará unos segundos en mapear el modelo desde tu SSD NVMe a la memoria. Una vez arriba, todos tus mensajes posteriores tomarán **0 segundos en cargar**.
-3. **Velocidad Terminal**: A partir del primer golpe, verás tu respuesta decodificarse a velocidades abismales (40 a 70 palabras por segundo) directamente frente a ti en el flujo de la consola o la burbuja.
+    F1 --> C1
+    F2 --> C1
+    C1 --> C2
+    C1 --> C3
+    C1 --> D1
+    C1 --> D2
+    C1 --> D3
+    C1 --> D4
+    C1 --> D5
+    C1 --> R1
+    C1 --> R2
+    C1 --> R3
+```
 
-### 🎭 Investigación Avanzada de Roleplay & Modelos Recomendados
-Hemos consolidado nuestro análisis táctico sobre cómo correr modelos gigantes en entornos locales, mitigar la degradación del contexto (KV Cache Degradation) y estructurar inyecciones de Group Bleeds en un documento separado de grado investigativo.
+## Flujo de uso
 
-Para conocer el **Top 10 de Modelos Desalineados** (Tier 1 hasta Tier Dios, incluyendo a los Llama-3-8B-Stheno, Mistral-Nemo, etc.), la optimización de EXL2 vs GGUF, y extraer los *System Prompts* de modo Root (sin censura):
+```mermaid
+sequenceDiagram
+    participant Jack
+    participant UI as VoidWhisper UI
+    participant Store as user_data
+    participant Model as Backend local
 
-👉 **[Lee la Guía Técnica de Desalineación LLM y Modelos Uncensored](INVESTIGACION_ROLEPLAY.md)**
+    Jack->>UI: Abre chat o configuración
+    UI->>Store: Lee personaje, preset y modelo
+    Jack->>UI: Envía mensaje
+    UI->>Model: Construye prompt y ejecuta inferencia
+    Model-->>UI: Devuelve respuesta
+    UI-->>Jack: Muestra salida final
+```
 
----
+## Estructura de datos
 
-## 🚀 Instalación y Despliegue Rápido
+VoidWhisper ahora entiende una organización parecida a `text-generation-webui`:
 
-1. Asegúrate de tener Python instalado y clona este repositorio:
-   ```bash
-   git clone https://github.com/JackStar6677-1/VoidWhisper.git
-   cd VoidWhisper
-   ```
+- `user_data/characters/`
+  - personajes editables en YAML
+- `user_data/presets/`
+  - parámetros de temperatura, top_p, min_p, repetición, etc.
+- `user_data/models/config-user.yaml`
+  - reglas locales por extensión o patrón
+- `user_data/settings.yaml`
+  - defaults persistentes del entorno
 
-2. Genera y activa el Sandbox/Entorno Virtual:
-   ```bash
-   python -m venv void_env
-   .\void_env\Scripts\activate
-   ```
+## Motor de inferencia
 
-3. Instala los cimientos (Transformers o AirLLM):
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 1. Transformers
 
-### Iniciando (Un clic)
-Hemos incluido un generador de Atajos directo a tu escritorio:
-Ejecuta el script: `CREATE_DESKTOP_SHORTCUT.bat`
+Pensado para modelos compatibles con `AutoModelForCausalLM`, con soporte de cuantización y carga estándar.
 
-Luego solo debes hacer doble clic en el ícono de **VoidWhisper** en tu fondo de pantalla y se activará. Si los Emojis no renderizan bien, haz doble click en `REPARAR_EMOJIS_PC.bat`.
+### 2. AirLLM
 
----
+Útil si quieres dividir la carga en bloques y sobrevivir con hardware más justo.
 
-## 🧩 Modos de Uso
+### 3. llama.cpp / GGUF
 
-### Base de Datos Centralizada
-La persistencia usa SQLite con trayectos absolutos definidos mágicamente e impulsada bajo el estándar SQLAlchemy 2.0+ (`db.session.get()`). 
-
-### Flujo tipo webui
-VoidWhisper ahora también soporta una estructura de archivos estilo `text-generation-webui` dentro de `user_data/`:
-
-- `user_data/characters/`: personajes YAML editables
-- `user_data/presets/`: presets de generación YAML
-- `user_data/models/config-user.yaml`: reglas locales por modelo, incluido `GGUF`
-- `user_data/settings.yaml`: valores por defecto del entorno
-
-Desde **Configuración** puedes:
-
-- elegir personaje y preset por defecto
-- cambiar el loader
-- cargar modelos `GGUF` locales con `llama.cpp`
-- descargar un archivo `GGUF` de Hugging Face directamente al directorio local
-
-Para activar el backend GGUF, instala la dependencia opcional:
+Se activa para archivos `.gguf` locales. Si quieres usarlo de verdad, instala la dependencia opcional:
 
 ```bash
 pip install -r requirements-gguf.txt
 ```
 
-### Gestión de Operadores & Identidades
-Desde la Web UI puedes:
-1. Crear "Plantillas" de Sistema para inyectar personalidades maestras.
-2. Intervenir un chat alterando manualmente bloques de texto (Message Editar).
-3. Switch en vivo de motor (Transformers normal a Async AirLLM).
+## Carpeta de modelos
 
----
+Desde la pantalla de configuración puedes:
 
-## 📜 Licencia
-Construído adaptativamente por Void. MIT License.
+- escribir un repo de Hugging Face
+- indicar un `.gguf` local
+- descargar el archivo al directorio del proyecto
+- ver los modelos locales detectados
+
+## Instalación rápida
+
+```bash
+git clone https://github.com/JackStar6677-1/VoidWhisper.git
+cd VoidWhisper
+python -m venv void_env
+.\void_env\Scripts\activate
+pip install -r requirements.txt
+```
+
+Si quieres soporte GGUF:
+
+```bash
+pip install -r requirements-gguf.txt
+```
+
+## Inicio
+
+- `RUN_VOIDWHISPER.bat`
+- `launch_voidwhisper.bat`
+- `CREATE_DESKTOP_SHORTCUT.bat`
+
+## Lo que incluye el proyecto
+
+- `app.py`: backend principal Flask
+- `voidwhisper_store.py`: capa de persistencia YAML y utilidades
+- `templates/`: interfaz web
+- `user_data/`: personas, presets, config y modelos locales
+- `assets/`: branding visual del repo
+
+## Mapa rápido
+
+```text
+VoidWhisper/
+├─ app.py
+├─ voidwhisper_store.py
+├─ assets/
+│  └─ voidwhisper-hero.svg
+├─ templates/
+├─ user_data/
+│  ├─ characters/
+│  ├─ presets/
+│  ├─ models/
+│  └─ settings.yaml
+└─ requirements*.txt
+```
+
+## Notas
+
+- El archivo `config-user.yaml` permite afinar patrones de carga locales.
+- Los modelos pesados no se versionan; solo la configuración base.
+- La estética está pensada para un tono oscuro, morado y dorado, con sensación cósmica.
+
+## Licencia
+
+MIT License.
