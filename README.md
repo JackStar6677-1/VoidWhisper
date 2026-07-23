@@ -201,3 +201,5 @@ VoidWhisper/
 ## Licencia
 
 MIT License.
+
+<!-- Updated for 2026 active baseline maintenance -->
