@@ -145,7 +145,7 @@ Desde el panel principal también puedes:
 - reintentar la última respuesta de la IA
 - continuar la generación desde el último contexto
 
-## Instalación rápida
+## Installation rápida
 
 ```bash
 git clone https://github.com/JackStar6677-1/VoidWhisper.git
@@ -198,7 +198,7 @@ VoidWhisper/
 - Los modelos pesados no se versionan; solo la configuración base.
 - La estética está pensada para un tono oscuro, morado y dorado, con sensación cósmica.
 
-## Licencia
+## License
 
 MIT License.
 
