@@ -9,7 +9,7 @@
 - Interfaz local con estética galáctica, oscura y cuidada.
 - Support for personajes YAML editables.
 - Presets de generación separados del personaje.
-- Descarga directa de modelos y archivos desde Hugging Face.
+- Descarga directa de modelos y files desde Hugging Face.
 - Backend híbrido: `Transformers`, `AirLLM` y `llama.cpp` cuando toca.
 - Configuración persistente en `user_data/`.
 - Exportación e importación de chats.
@@ -120,7 +120,7 @@ Pensado para modelos compatibles con `AutoModelForCausalLM`, con soporte de cuan
 
 ### 3. llama.cpp / GGUF
 
-Se activa para archivos `.gguf` locales. Si quieres usarlo de verdad, instala la dependencia opcional:
+Se activa para files `.gguf` locales. Si quieres usarlo de verdad, instala la dependencia opcional:
 
 ```bash
 pip install -r requirements-gguf.txt
@@ -128,13 +128,13 @@ pip install -r requirements-gguf.txt
 
 ## Carpeta de modelos
 
-Desde la pantalla de configuración puedes:
+Desde la screen de configuración puedes:
 
 - escribir un repo de Hugging Face
 - indicar un `.gguf` local
 - descargar un archivo suelto o un repo completo al directorio del proyecto
 - elegir el modelo local activo desde un selector
-- ver los modelos y carpetas locales detectados
+- ver los modelos y folders locales detectados
 
 Desde el panel principal también puedes:
 
