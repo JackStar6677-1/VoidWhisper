@@ -7,7 +7,7 @@
 ## Lo esencial
 
 - Interfaz local con estética galáctica, oscura y cuidada.
-- Soporte para personajes YAML editables.
+- Support for personajes YAML editables.
 - Presets de generación separados del personaje.
 - Descarga directa de modelos y archivos desde Hugging Face.
 - Backend híbrido: `Transformers`, `AirLLM` y `llama.cpp` cuando toca.
